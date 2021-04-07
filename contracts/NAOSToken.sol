@@ -8,14 +8,14 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IDetailedERC20} from "./interfaces/IDetailedERC20.sol";
 
-/// @title AlchemixToken
+/// @title NAOSToken
 ///
-/// @dev This is the contract for the Alchemix governance token.
+/// @dev This is the contract for the NAOS governance token.
 ///
 /// Initially, the contract deployer is given both the admin and minter role. This allows them to pre-mine tokens,
 /// transfer admin to a timelock contract, and lastly, grant the staking pools the minter role. After this is done,
 /// the deployer must revoke their admin role and minter role.
-contract AlchemixToken is AccessControl, ERC20("Alchemix", "ALCX") {
+contract NAOSToken is AccessControl, ERC20("NAOS", "NAOS") {
 
   /// @dev The identifier of the role which maintains other roles.
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN");
@@ -32,7 +32,7 @@ contract AlchemixToken is AccessControl, ERC20("Alchemix", "ALCX") {
 
   /// @dev A modifier which checks that the caller has the minter role.
   modifier onlyMinter() {
-    require(hasRole(MINTER_ROLE, msg.sender), "AlchemixToken: only minter");
+    require(hasRole(MINTER_ROLE, msg.sender), "NAOSToken: only minter");
     _;
   }
 

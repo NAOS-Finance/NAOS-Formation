@@ -4,26 +4,26 @@ import {solidity} from "ethereum-waffle";
 import {ethers} from "hardhat";
 import {BigNumber, BigNumberish, ContractFactory, Signer} from "ethers";
 
-import {Alchemist} from "../../types/Alchemist";
+import { Formation } from "../../types/Formation";
 import { StakingPools } from "../../types/StakingPools";
 import { Erc20Mock } from "../../types/Erc20Mock";
-import {AlchemixToken} from "../../types/AlchemixToken";
+import { NaosToken } from "../../types/NaosToken";
 
 chai.use(solidity);
 chai.use(chaiSubset);
 
 const {expect} = chai;
 
-let AlchemixTokenFactory: ContractFactory;
+let NaosTokenFactory: ContractFactory;
 
-describe("AlchemixToken", () => {
+describe("NaosToken", () => {
   let deployer: Signer;
   let signers: Signer[];
 
-  let token: AlchemixToken;
+  let token: NaosToken;
 
   before(async () => {
-    AlchemixTokenFactory = await ethers.getContractFactory("AlchemixToken");
+    NaosTokenFactory = await ethers.getContractFactory("NAOSToken");
   });
 
   beforeEach(async () => {
@@ -31,7 +31,7 @@ describe("AlchemixToken", () => {
   });
 
   beforeEach(async () => {
-    token = await AlchemixTokenFactory.deploy() as AlchemixToken;
+    token = await NaosTokenFactory.deploy() as NaosToken;
   });
 
   it("grants the admin role to the deployer", async () => {
@@ -53,7 +53,7 @@ describe("AlchemixToken", () => {
 
       it("reverts", async () => {
         expect(token.mint(await recipient.getAddress(), 1))
-          .revertedWith("AlchemixToken: only minter");
+          .revertedWith("NAOSToken: only minter");
       });
     });
 

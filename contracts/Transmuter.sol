@@ -51,10 +51,10 @@ contract Transmuter is Context {
     address public constant ZERO_ADDRESS = address(0);
     uint256 public TRANSMUTATION_PERIOD;
 
-    address public AlToken;
+    address public NToken;
     address public Token;
 
-    mapping(address => uint256) public depositedAlTokens;
+    mapping(address => uint256) public depositedNTokens;
     mapping(address => uint256) public tokensInBucket;
     mapping(address => uint256) public realisedTokens;
     mapping(address => uint256) public lastDividendPoints;
@@ -63,17 +63,17 @@ contract Transmuter is Context {
     mapping(uint256 => address) public userList;
     uint256 public nextUser;
 
-    uint256 public totalSupplyAltokens;
+    uint256 public totalSupplyNtokens;
     uint256 public buffer;
     uint256 public lastDepositBlock;
 
-    ///@dev values needed to calculate the distribution of base asset in proportion for alTokens staked
+    ///@dev values needed to calculate the distribution of base asset in proportion for nTokens staked
     uint256 public pointMultiplier = 10e18;
 
     uint256 public totalDividendPoints;
     uint256 public unclaimedDividends;
 
-    /// @dev alchemist addresses whitelisted
+    /// @dev formation addresses whitelisted
     mapping (address => bool) public whiteList;
 
     /// @dev The address of the account which currently has administrative capabilities over this contract.
@@ -94,18 +94,18 @@ contract Transmuter is Context {
         uint256 newTransmutationPeriod
     );
 
-    constructor(address _AlToken, address _Token, address _governance) public {
+    constructor(address _NToken, address _Token, address _governance) public {
         require(_governance != ZERO_ADDRESS, "Transmuter: 0 gov");
         governance = _governance;
-        AlToken = _AlToken;
+        NToken = _NToken;
         Token = _Token;
         TRANSMUTATION_PERIOD = 50;
     }
 
-    ///@return displays the user's share of the pooled alTokens.
+    ///@return displays the user's share of the pooled nTokens.
     function dividendsOwing(address account) public view returns (uint256) {
         uint256 newDividendPoints = totalDividendPoints.sub(lastDividendPoints[account]);
-        return depositedAlTokens[account].mul(newDividendPoints).div(pointMultiplier);
+        return depositedNTokens[account].mul(newDividendPoints).div(pointMultiplier);
     }
 
     ///@dev modifier to fill the bucket and keep bookkeeping correct incase of increase/decrease in shares
@@ -204,38 +204,38 @@ contract Transmuter is Context {
         IERC20Burnable(Token).safeTransfer(sender, value);
     }
 
-    ///@dev Withdraws staked alTokens from the transmuter
+    ///@dev Withdraws staked nTokens from the transmuter
     ///
     /// This function reverts if you try to draw more tokens than you deposited
     ///
-    ///@param amount the amount of alTokens to unstake
+    ///@param amount the amount of nTokens to unstake
     function unstake(uint256 amount) public updateAccount(msg.sender) {
         // by calling this function before transmuting you forfeit your gained allocation
         address sender = msg.sender;
-        require(depositedAlTokens[sender] >= amount,"Transmuter: unstake amount exceeds deposited amount");
-        depositedAlTokens[sender] = depositedAlTokens[sender].sub(amount);
-        totalSupplyAltokens = totalSupplyAltokens.sub(amount);
-        IERC20Burnable(AlToken).safeTransfer(sender, amount);
+        require(depositedNTokens[sender] >= amount,"Transmuter: unstake amount exceeds deposited amount");
+        depositedNTokens[sender] = depositedNTokens[sender].sub(amount);
+        totalSupplyNtokens = totalSupplyNtokens.sub(amount);
+        IERC20Burnable(NToken).safeTransfer(sender, amount);
     }
-    ///@dev Deposits alTokens into the transmuter 
+    ///@dev Deposits nTokens into the transmuter 
     ///
-    ///@param amount the amount of alTokens to stake
+    ///@param amount the amount of nTokens to stake
     function stake(uint256 amount)
         public
         runPhasedDistribution()
         updateAccount(msg.sender)
         checkIfNewUser()
     {
-        // requires approval of AlToken first
+        // requires approval of NToken first
         address sender = msg.sender;
         //require tokens transferred in;
-        IERC20Burnable(AlToken).safeTransferFrom(sender, address(this), amount);
-        totalSupplyAltokens = totalSupplyAltokens.add(amount);
-        depositedAlTokens[sender] = depositedAlTokens[sender].add(amount);
+        IERC20Burnable(NToken).safeTransferFrom(sender, address(this), amount);
+        totalSupplyNtokens = totalSupplyNtokens.add(amount);
+        depositedNTokens[sender] = depositedNTokens[sender].add(amount);
     }
-    /// @dev Converts the staked alTokens to the base tokens in amount of the sum of pendingdivs and tokensInBucket
+    /// @dev Converts the staked nTokens to the base tokens in amount of the sum of pendingdivs and tokensInBucket
     ///
-    /// once the alToken has been converted, it is burned, and the base token becomes realisedTokens which can be recieved using claim()    
+    /// once the NToken has been converted, it is burned, and the base token becomes realisedTokens which can be recieved using claim()    
     ///
     /// reverts if there are no pendingdivs or tokensInBucket
     function transmute() public runPhasedDistribution() updateAccount(msg.sender) {
@@ -248,21 +248,21 @@ contract Transmuter is Context {
         tokensInBucket[sender] = 0;
 
         // check bucket overflow
-        if (pendingz > depositedAlTokens[sender]) {
-            diff = pendingz.sub(depositedAlTokens[sender]);
+        if (pendingz > depositedNTokens[sender]) {
+            diff = pendingz.sub(depositedNTokens[sender]);
 
             // remove overflow
-            pendingz = depositedAlTokens[sender];
+            pendingz = depositedNTokens[sender];
         }
 
-        // decrease altokens
-        depositedAlTokens[sender] = depositedAlTokens[sender].sub(pendingz);
+        // decrease ntokens
+        depositedNTokens[sender] = depositedNTokens[sender].sub(pendingz);
 
-        // BURN ALTOKENS
-        IERC20Burnable(AlToken).burn(pendingz);
+        // BURN ntokens
+        IERC20Burnable(NToken).burn(pendingz);
 
         // adjust total
-        totalSupplyAltokens = totalSupplyAltokens.sub(pendingz);
+        totalSupplyNtokens = totalSupplyNtokens.sub(pendingz);
 
         // reallocate overflow
         increaseAllocations(diff);
@@ -271,7 +271,7 @@ contract Transmuter is Context {
         realisedTokens[sender] = realisedTokens[sender].add(pendingz);
     }
 
-    /// @dev Executes transmute() on another account that has had more base tokens allocated to it than alTokens staked.
+    /// @dev Executes transmute() on another account that has had more base tokens allocated to it than nTokens staked.
     ///
     /// The caller of this function will have the surlus base tokens credited to their tokensInBucket balance, rewarding them for performing this action
     ///
@@ -289,7 +289,7 @@ contract Transmuter is Context {
         uint256 pendingz = tokensInBucket[toTransmute];
         // check restrictions
         require(
-            pendingz > depositedAlTokens[toTransmute],
+            pendingz > depositedNTokens[toTransmute],
             "Transmuter: !overflow"
         );
 
@@ -297,19 +297,19 @@ contract Transmuter is Context {
         tokensInBucket[toTransmute] = 0;
 
         // calculaate diffrence
-        uint256 diff = pendingz.sub(depositedAlTokens[toTransmute]);
+        uint256 diff = pendingz.sub(depositedNTokens[toTransmute]);
 
         // remove overflow
-        pendingz = depositedAlTokens[toTransmute];
+        pendingz = depositedNTokens[toTransmute];
 
-        // decrease altokens
-        depositedAlTokens[toTransmute] = 0;
+        // decrease ntokens
+        depositedNTokens[toTransmute] = 0;
 
-        // BURN ALTOKENS
-        IERC20Burnable(AlToken).burn(pendingz);
+        // BURN ntokens
+        IERC20Burnable(NToken).burn(pendingz);
 
         // adjust total
-        totalSupplyAltokens = totalSupplyAltokens.sub(pendingz);
+        totalSupplyNtokens = totalSupplyNtokens.sub(pendingz);
 
         // reallocate overflow
         tokensInBucket[sender] = tokensInBucket[sender].add(diff);
@@ -325,36 +325,36 @@ contract Transmuter is Context {
         }
     }
 
-    /// @dev Transmutes and unstakes all alTokens
+    /// @dev Transmutes and unstakes all nTokens
     ///
     /// This function combines the transmute and unstake functions for ease of use
     function exit() public {
         transmute();
-        uint256 toWithdraw = depositedAlTokens[msg.sender];
+        uint256 toWithdraw = depositedNTokens[msg.sender];
         unstake(toWithdraw);
     }
 
     /// @dev Transmutes and claims all converted base tokens.
     ///
-    /// This function combines the transmute and claim functions while leaving your remaining alTokens staked.
+    /// This function combines the transmute and claim functions while leaving your remaining nTokens staked.
     function transmuteAndClaim() public {
         transmute();
         claim();
     }
 
-    /// @dev Transmutes, claims base tokens, and withdraws alTokens.
+    /// @dev Transmutes, claims base tokens, and withdraws nTokens.
     ///
-    /// This function helps users to exit the transmuter contract completely after converting their alTokens to the base pair.
+    /// This function helps users to exit the transmuter contract completely after converting their nTokens to the base pair.
     function transmuteClaimAndWithdraw() public {
         transmute();
         claim();
-        uint256 toWithdraw = depositedAlTokens[msg.sender];
+        uint256 toWithdraw = depositedNTokens[msg.sender];
         unstake(toWithdraw);
     }
 
-    /// @dev Distributes the base token proportionally to all alToken stakers.
+    /// @dev Distributes the base token proportionally to all NToken stakers.
     ///
-    /// This function is meant to be called by the Alchemist contract for when it is sending yield to the transmuter. 
+    /// This function is meant to be called by the Formation contract for when it is sending yield to the transmuter. 
     /// Anyone can call this and add funds, idk why they would do that though...
     ///
     /// @param origin the account that is sending the tokens to be distributed.
@@ -364,13 +364,13 @@ contract Transmuter is Context {
         buffer = buffer.add(amount);
     }
 
-    /// @dev Allocates the incoming yield proportionally to all alToken stakers.
+    /// @dev Allocates the incoming yield proportionally to all NToken stakers.
     ///
     /// @param amount the amount of base tokens to be distributed in the transmuter.
     function increaseAllocations(uint256 amount) internal {
-        if(totalSupplyAltokens > 0 && amount > 0) {
+        if(totalSupplyNtokens > 0 && amount > 0) {
             totalDividendPoints = totalDividendPoints.add(
-                amount.mul(pointMultiplier).div(totalSupplyAltokens)
+                amount.mul(pointMultiplier).div(totalSupplyNtokens)
             );
             unclaimedDividends = unclaimedDividends.add(amount);
         } else {
@@ -396,12 +396,12 @@ contract Transmuter is Context {
             uint256 realised
         )
     {
-        uint256 _depositedAl = depositedAlTokens[user];
+        uint256 _depositedAl = depositedNTokens[user];
         uint256 _toDistribute = buffer.mul(block.number.sub(lastDepositBlock)).div(TRANSMUTATION_PERIOD);
         if(block.number.sub(lastDepositBlock) > TRANSMUTATION_PERIOD){
             _toDistribute = buffer;
         }
-        uint256 _pendingdivs = _toDistribute.mul(depositedAlTokens[user]).div(totalSupplyAltokens);
+        uint256 _pendingdivs = _toDistribute.mul(depositedNTokens[user]).div(totalSupplyNtokens);
         uint256 _inbucket = tokensInBucket[user].add(dividendsOwing(user));
         uint256 _realised = realisedTokens[user];
         return (_depositedAl, _pendingdivs, _inbucket, _realised);
@@ -433,8 +433,8 @@ contract Transmuter is Context {
         }
         for (uint256 x = 0; x < delta; x += 1) {
             _theUserList[x] = userList[i];
-            _theUserData[y] = depositedAlTokens[userList[i]];
-            _theUserData[y + 1] = dividendsOwing(userList[i]).add(tokensInBucket[userList[i]]).add(_toDistribute.mul(depositedAlTokens[userList[i]]).div(totalSupplyAltokens));
+            _theUserData[y] = depositedNTokens[userList[i]];
+            _theUserData[y + 1] = dividendsOwing(userList[i]).add(tokensInBucket[userList[i]]).add(_toDistribute.mul(depositedNTokens[userList[i]]).div(totalSupplyNtokens));
             y += 2;
             i += 1;
         }

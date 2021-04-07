@@ -10,7 +10,7 @@ import {IDetailedERC20} from "./interfaces/IDetailedERC20.sol";
 
 /// @title TimeToken
 ///
-/// @dev This is the contract for the Alchemix time token.
+/// @dev This is the contract for the NAOS time token.
 ///
 
 contract TimeToken is AccessControl, ERC20("Technological Instantiation Meta Env", "TIME") {

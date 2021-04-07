@@ -3,8 +3,8 @@ import chaiSubset from "chai-subset";
 import { solidity } from "ethereum-waffle";
 import { ethers } from "hardhat";
 import { ContractFactory, Signer, BigNumber, utils } from "ethers";
-import { AlToken } from "../../types/AlToken";
-import { Alchemist } from "../../types/Alchemist";
+import { NToken } from "../../types/NToken";
+import { Formation } from "../../types/Formation";
 import { VaultAdapterMock } from "../../types/VaultAdapterMock";
 
 import { Erc20Mock } from "../../types/Erc20Mock";
@@ -18,39 +18,39 @@ chai.use(chaiSubset);
 
 const { expect } = chai;
 
-let AlchemistFactory: ContractFactory;
+let FormationFactory: ContractFactory;
 let TransmuterFactory: ContractFactory;
 let ERC20MockFactory: ContractFactory;
-let AlUSDFactory: ContractFactory;
+let nUSDFactory: ContractFactory;
 let VaultAdapterMockFactory: ContractFactory;
 
 describe("Transmuter", () => {
   let deployer: Signer;
   let depositor: Signer;
   let signers: Signer[];
-  let alchemist: Alchemist;
+  let formation: Formation;
   let governance: Signer;
   let minter: Signer;
   let rewards: Signer;
   let sentinel: Signer;
   let user: Signer;
-  let mockAlchemist: Signer;
+  let mockFormation: Signer;
   let token: Erc20Mock;
   let transmuter: Transmuter;
   let adapter: VaultAdapterMock;
-  let alUsd: AlToken;
+  let nUsd: NToken;
   let harvestFee = 1000;
   let ceilingAmt = utils.parseEther("10000000");
   let collateralizationLimit = "2000000000000000000";
   let mintAmount = 5000;
-  let mockAlchemistAddress;
-  let preTestTotalAlUSDSupply: BigNumber;
+  let mockFormationAddress;
+  let preTestTotalNUSDSupply: BigNumber;
 
   before(async () => {
     TransmuterFactory = await ethers.getContractFactory("Transmuter");
     ERC20MockFactory = await ethers.getContractFactory("ERC20Mock");
-    AlUSDFactory = await ethers.getContractFactory("AlToken");
-    AlchemistFactory = await ethers.getContractFactory("Alchemist");
+    nUSDFactory = await ethers.getContractFactory("NToken");
+    FormationFactory = await ethers.getContractFactory("Formation");
     VaultAdapterMockFactory = await ethers.getContractFactory(
       "VaultAdapterMock"
     );
@@ -68,7 +68,7 @@ describe("Transmuter", () => {
       sentinel,
       minter,
       governance,
-      mockAlchemist,
+      mockFormation,
       user,
       ...signers
     ] = await ethers.getSigners();
@@ -79,75 +79,75 @@ describe("Transmuter", () => {
       18
     )) as Erc20Mock;
 
-    alUsd = (await AlUSDFactory.connect(deployer).deploy()) as AlToken;
+    nUsd = (await nUSDFactory.connect(deployer).deploy()) as NToken;
 
-    mockAlchemistAddress = await mockAlchemist.getAddress();
+    mockFormationAddress = await mockFormation.getAddress();
 
-    alchemist = (await AlchemistFactory.connect(deployer).deploy(
+    formation = (await FormationFactory.connect(deployer).deploy(
       token.address,
-      alUsd.address,
+      nUsd.address,
       await governance.getAddress(),
       await sentinel.getAddress()
-    )) as Alchemist;
+    )) as Formation;
     transmuter = (await TransmuterFactory.connect(deployer).deploy(
-      alUsd.address,
+      nUsd.address,
       token.address,
       await governance.getAddress()
     )) as Transmuter;
     await transmuter.connect(governance).setTransmutationPeriod(40320);
-    await alchemist.connect(governance).setTransmuter(transmuter.address);
-    await alchemist.connect(governance).setRewards(await rewards.getAddress());
-    await alchemist.connect(governance).setHarvestFee(harvestFee);
-    await transmuter.connect(governance).setWhitelist(mockAlchemistAddress, true);
+    await formation.connect(governance).setTransmuter(transmuter.address);
+    await formation.connect(governance).setRewards(await rewards.getAddress());
+    await formation.connect(governance).setHarvestFee(harvestFee);
+    await transmuter.connect(governance).setWhitelist(mockFormationAddress, true);
 
     adapter = (await VaultAdapterMockFactory.connect(deployer).deploy(
       token.address
     )) as VaultAdapterMock;
-    await alchemist.connect(governance).initialize(adapter.address);
-    await alchemist
+    await formation.connect(governance).initialize(adapter.address);
+    await formation
       .connect(governance)
       .setCollateralizationLimit(collateralizationLimit);
-    await alUsd.connect(deployer).setWhitelist(alchemist.address, true);
-    await alUsd.connect(deployer).setCeiling(alchemist.address, ceilingAmt);
-    await token.mint(mockAlchemistAddress, utils.parseEther("10000"));
-    await token.connect(mockAlchemist).approve(transmuter.address, MAXIMUM_U256);
+    await nUsd.connect(deployer).setWhitelist(formation.address, true);
+    await nUsd.connect(deployer).setCeiling(formation.address, ceilingAmt);
+    await token.mint(mockFormationAddress, utils.parseEther("10000"));
+    await token.connect(mockFormation).approve(transmuter.address, MAXIMUM_U256);
 
     await token.mint(await depositor.getAddress(), utils.parseEther("20000"));
     await token.mint(await minter.getAddress(), utils.parseEther("20000"));
     await token.connect(depositor).approve(transmuter.address, MAXIMUM_U256);
-    await alUsd.connect(depositor).approve(transmuter.address, MAXIMUM_U256);
-    await token.connect(depositor).approve(alchemist.address, MAXIMUM_U256);
-    await alUsd.connect(depositor).approve(alchemist.address, MAXIMUM_U256);
+    await nUsd.connect(depositor).approve(transmuter.address, MAXIMUM_U256);
+    await token.connect(depositor).approve(formation.address, MAXIMUM_U256);
+    await nUsd.connect(depositor).approve(formation.address, MAXIMUM_U256);
     await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-    await alUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-    await token.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-    await alUsd.connect(minter).approve(alchemist.address, MAXIMUM_U256);
+    await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
+    await token.connect(minter).approve(formation.address, MAXIMUM_U256);
+    await nUsd.connect(minter).approve(formation.address, MAXIMUM_U256);
 
-    await alchemist.connect(depositor).deposit(utils.parseEther("10000"));
-    await alchemist.connect(depositor).mint(utils.parseEther("5000"));
+    await formation.connect(depositor).deposit(utils.parseEther("10000"));
+    await formation.connect(depositor).mint(utils.parseEther("5000"));
 
-    await alchemist.connect(minter).deposit(utils.parseEther("10000"));
-    await alchemist.connect(minter).mint(utils.parseEther("5000"));
+    await formation.connect(minter).deposit(utils.parseEther("10000"));
+    await formation.connect(minter).mint(utils.parseEther("5000"));
 
     transmuter = transmuter.connect(depositor)
 
-    preTestTotalAlUSDSupply = await alUsd.totalSupply();
+    preTestTotalNUSDSupply = await nUsd.totalSupply();
   });
 
   describe("stake()", () => {
 
-    it("stakes 1000 alUsd and reads the correct amount", async () => {
+    it("stakes 1000 nUsd and reads the correct amount", async () => {
       await transmuter.stake(1000);
       expect(
-        await transmuter.depositedAlTokens(await depositor.getAddress())
+        await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(1000);
     });
 
-    it("stakes 1000 alUsd two times and reads the correct amount", async () => {
+    it("stakes 1000 nUsd two times and reads the correct amount", async () => {
       await transmuter.stake(1000);
       await transmuter.stake(1000);
       expect(
-        await transmuter.depositedAlTokens(await depositor.getAddress())
+        await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(2000);
     });
 
@@ -162,19 +162,19 @@ describe("Transmuter", () => {
       );
     });
 
-    it("deposits and unstakes 1000 alUSD", async () => {
+    it("deposits and unstakes 1000 nUSD", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.unstake(utils.parseEther("1000"));
       expect(
-        await transmuter.depositedAlTokens(await depositor.getAddress())
+        await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(0);
     });
 
-    it("deposits 1000 alUSD and unstaked 500 alUSd", async () => {
+    it("deposits 1000 nUSD and unstaked 500 nUSD", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.unstake(utils.parseEther("500"));
       expect(
-        await transmuter.depositedAlTokens(await depositor.getAddress())
+        await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(utils.parseEther("500"));
     });
 
@@ -189,24 +189,24 @@ describe("Transmuter", () => {
       await transmuter.connect(governance).setTransmutationPeriod(transmutationPeriod);
       await token.mint(await minter.getAddress(), utils.parseEther("20000"));
       await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-      await alUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-      await token.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-      await alUsd.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-      await alchemist.connect(minter).deposit(utils.parseEther("10000"));
-      await alchemist.connect(minter).mint(utils.parseEther("5000"));
+      await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
+      await token.connect(minter).approve(formation.address, MAXIMUM_U256);
+      await nUsd.connect(minter).approve(formation.address, MAXIMUM_U256);
+      await formation.connect(minter).deposit(utils.parseEther("10000"));
+      await formation.connect(minter).mint(utils.parseEther("5000"));
       await token.mint(await rewards.getAddress(), utils.parseEther("20000"));
       await token.connect(rewards).approve(transmuter.address, MAXIMUM_U256);
-      await alUsd.connect(rewards).approve(transmuter.address, MAXIMUM_U256);
-      await token.connect(rewards).approve(alchemist.address, MAXIMUM_U256);
-      await alUsd.connect(rewards).approve(alchemist.address, MAXIMUM_U256);
-      await alchemist.connect(rewards).deposit(utils.parseEther("10000"));
-      await alchemist.connect(rewards).mint(utils.parseEther("5000"));
+      await nUsd.connect(rewards).approve(transmuter.address, MAXIMUM_U256);
+      await token.connect(rewards).approve(formation.address, MAXIMUM_U256);
+      await nUsd.connect(rewards).approve(formation.address, MAXIMUM_U256);
+      await formation.connect(rewards).deposit(utils.parseEther("10000"));
+      await formation.connect(rewards).mint(utils.parseEther("5000"));
     });
 
-    it("deposits 100000 alUSD, distributes 1000 DAI, and the correct amount of tokens are distributed to depositor", async () => {
+    it("deposits 100000 nUSD, distributes 1000 DAI, and the correct amount of tokens are distributed to depositor", async () => {
       let numBlocks = 5;
       await transmuter.connect(depositor).stake(stakeAmt);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, numBlocks);
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       // pendingdivs should be (distributeAmt * (numBlocks / transmutationPeriod))
@@ -216,7 +216,7 @@ describe("Transmuter", () => {
     it("two people deposit equal amounts and recieve equal amounts in distribution", async () => {
       await transmuter.connect(depositor).stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let userInfo1 = await transmuter.userInfo(await depositor.getAddress());
       let userInfo2 = await transmuter.userInfo(await minter.getAddress());
@@ -228,7 +228,7 @@ describe("Transmuter", () => {
       await transmuter.connect(depositor).stake(utils.parseEther("500"));
       await transmuter.connect(minter).stake(utils.parseEther("250"));
       await transmuter.connect(rewards).stake(utils.parseEther("250"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let userInfo1 = await transmuter.userInfo(await depositor.getAddress());
       let userInfo2 = await transmuter.userInfo(await minter.getAddress());
@@ -249,25 +249,25 @@ describe("Transmuter", () => {
     it("transmutes the correct amount", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmute();
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.realised).equal(transmutedAmt);
     });
 
-    it("burns the supply of alUSD on transmute()", async () => {
+    it("burns the supply of nUSD on transmute()", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmute();
-      let alUSDTokenSupply = await alUsd.totalSupply();
-      expect(alUSDTokenSupply).equal(preTestTotalAlUSDSupply.sub(transmutedAmt));
+      let nUSDTokenSupply = await nUsd.totalSupply();
+      expect(nUSDTokenSupply).equal(preTestTotalNUSDSupply.sub(transmutedAmt));
     });
 
     it("moves DAI from pendingdivs to inbucket upon staking more", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await transmuter.stake(utils.parseEther("100"));
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.inbucket).equal(transmutedAmt);
@@ -276,7 +276,7 @@ describe("Transmuter", () => {
     it("transmutes and claims using transmute() and then claim()", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.transmute();
       await transmuter.claim();
@@ -287,7 +287,7 @@ describe("Transmuter", () => {
     it("transmutes and claims using transmuteAndClaim()", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.transmuteAndClaim();
       let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
@@ -297,7 +297,7 @@ describe("Transmuter", () => {
     it("transmutes the full buffer if a complete phase has passed", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(governance).setTransmutationPeriod(10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 11);
       let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.connect(depositor).transmuteAndClaim();
@@ -321,27 +321,27 @@ describe("Transmuter", () => {
       let depStakeAmt1 = utils.parseEther("200")
       await transmuter.connect(governance).setTransmutationPeriod(10);
       await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-      await alUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-      await alUsd.connect(user).approve(transmuter.address, MAXIMUM_U256);
-      await token.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-      await token.connect(user).approve(alchemist.address, MAXIMUM_U256);
-      await alUsd.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-      await alUsd.connect(user).approve(alchemist.address, MAXIMUM_U256);
+      await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
+      await nUsd.connect(user).approve(transmuter.address, MAXIMUM_U256);
+      await token.connect(minter).approve(formation.address, MAXIMUM_U256);
+      await token.connect(user).approve(formation.address, MAXIMUM_U256);
+      await nUsd.connect(minter).approve(formation.address, MAXIMUM_U256);
+      await nUsd.connect(user).approve(formation.address, MAXIMUM_U256);
       await token.mint(await minter.getAddress(), utils.parseEther("20000"));
-      await alchemist.connect(minter).deposit(utils.parseEther("10000"));
-      await alchemist.connect(minter).mint(utils.parseEther("5000"));
+      await formation.connect(minter).deposit(utils.parseEther("10000"));
+      await formation.connect(minter).mint(utils.parseEther("5000"));
       await token.mint(await user.getAddress(), utils.parseEther("20000"));
-      await alchemist.connect(user).deposit(utils.parseEther("10000"));
-      await alchemist.connect(user).mint(utils.parseEther("5000"));
+      await formation.connect(user).deposit(utils.parseEther("10000"));
+      await formation.connect(user).mint(utils.parseEther("5000"));
 
       // user 1 deposit
       await transmuter.connect(depositor).stake(depStakeAmt0);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt0);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt0);
       await mineBlocks(ethers.provider, 10);
 
       // user 2 deposit
       await transmuter.connect(minter).stake(depStakeAmt1);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt1);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt1);
       await mineBlocks(ethers.provider, 10);
 
       await transmuter.connect(user).stake(depStakeAmt1);
@@ -362,33 +362,33 @@ describe("Transmuter", () => {
   describe("transmuteClaimAndWithdraw()", () => {
     let distributeAmt = utils.parseEther("500");
     let transmutedAmt = BigNumber.from("6200396825396800");
-    let alUsdBalanceBefore: BigNumber;
+    let nUsdBalanceBefore: BigNumber;
     let tokenBalanceBefore: BigNumber;
 
     beforeEach(async () => {
       tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      alUsdBalanceBefore = await alUsd.connect(depositor).balanceOf(await depositor.getAddress());
+      nUsdBalanceBefore = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmuteClaimAndWithdraw();
     })
 
-    it("has a staking balance of 0 alUSD after transmuteClaimAndWithdraw()", async () => {
+    it("has a staking balance of 0 nUSD after transmuteClaimAndWithdraw()", async () => {
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.depositedAl).equal(0);
-      expect(await transmuter.depositedAlTokens(await depositor.getAddress())).equal(0);
+      expect(await transmuter.depositedNTokens(await depositor.getAddress())).equal(0);
     });
 
-    it("returns the amount of alUSD staked less the transmuted amount", async () => {
-      let alUsdBalanceAfter = await alUsd.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(alUsdBalanceAfter).equal(alUsdBalanceBefore.sub(transmutedAmt))
+    it("returns the amount of nUSD staked less the transmuted amount", async () => {
+      let nUsdBalanceAfter = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
+      expect(nUsdBalanceAfter).equal(nUsdBalanceBefore.sub(transmutedAmt))
     });
 
-    it("burns the correct amount of transmuted alUSD using transmuteClaimAndWithdraw()", async () => {
-      let alUSDTokenSupply = await alUsd.totalSupply();
-      expect(alUSDTokenSupply).equal(preTestTotalAlUSDSupply.sub(transmutedAmt));
+    it("burns the correct amount of transmuted nUSD using transmuteClaimAndWithdraw()", async () => {
+      let nUSDTokenSupply = await nUsd.totalSupply();
+      expect(nUSDTokenSupply).equal(preTestTotalNUSDSupply.sub(transmutedAmt));
     });
 
     it("successfully sends DAI to owner using transmuteClaimAndWithdraw()", async () => {
@@ -401,22 +401,22 @@ describe("Transmuter", () => {
   describe("exit()", () => {
     let distributeAmt = utils.parseEther("500");
     let transmutedAmt = BigNumber.from("6200396825396800");
-    let alUsdBalanceBefore: BigNumber;
+    let nUsdBalanceBefore: BigNumber;
     let tokenBalanceBefore: BigNumber;
 
     beforeEach(async () => {
       tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      alUsdBalanceBefore = await alUsd.connect(depositor).balanceOf(await depositor.getAddress());
+      nUsdBalanceBefore = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await transmuter.exit();
     })
 
-    it("transmutes and then withdraws alUSD from staking", async () => {
-      let alUsdBalanceAfter = await alUsd.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(alUsdBalanceAfter).equal(alUsdBalanceBefore.sub(transmutedAmt));
+    it("transmutes and then withdraws nUSD from staking", async () => {
+      let nUsdBalanceAfter = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
+      expect(nUsdBalanceAfter).equal(nUsdBalanceBefore.sub(transmutedAmt));
     });
 
     it("transmutes and claimable DAI moves to realised value", async () => {
@@ -438,17 +438,17 @@ describe("Transmuter", () => {
       transmuter.connect(governance).setTransmutationPeriod(10);
       await token.mint(await minter.getAddress(), utils.parseEther("20000"));
       await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-      await alUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
-      await token.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-      await alUsd.connect(minter).approve(alchemist.address, MAXIMUM_U256);
-      await alchemist.connect(minter).deposit(utils.parseEther("10000"));
-      await alchemist.connect(minter).mint(utils.parseEther("5000"));
+      await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
+      await token.connect(minter).approve(formation.address, MAXIMUM_U256);
+      await nUsd.connect(minter).approve(formation.address, MAXIMUM_U256);
+      await formation.connect(minter).deposit(utils.parseEther("10000"));
+      await formation.connect(minter).mint(utils.parseEther("5000"));
       await transmuter.connect(depositor).stake(utils.parseEther(".01"));
     });
 
-    it("User 'depositor' has alUSD overfilled, user 'minter' force transmutes user 'depositor' and user 'depositor' has DAI sent to his address", async () => {
+    it("User 'depositor' has nUSD overfilled, user 'minter' force transmutes user 'depositor' and user 'depositor' has DAI sent to his address", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("10"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.connect(minter).forceTransmute(await depositor.getAddress());
@@ -456,9 +456,9 @@ describe("Transmuter", () => {
       expect(tokenBalanceBefore).equal(tokenBalanceAfter.sub(utils.parseEther("0.01")));
     });
 
-    it("User 'depositor' has alUSD overfilled, user 'minter' force transmutes user 'depositor' and user 'minter' overflow added inbucket", async () => {
+    it("User 'depositor' has nUSD overfilled, user 'minter' force transmutes user 'depositor' and user 'minter' overflow added inbucket", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("10"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       await transmuter.connect(minter).forceTransmute(await depositor.getAddress());
       let userInfo = await transmuter.connect(minter).userInfo(await minter.getAddress());
@@ -468,7 +468,7 @@ describe("Transmuter", () => {
 
     it("you can force transmute yourself", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("1"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.connect(depositor).forceTransmute(await depositor.getAddress());
@@ -477,7 +477,7 @@ describe("Transmuter", () => {
     });
 
     it("you can force transmute yourself even when you are the only one in the transmuter", async () => {
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, distributeAmt);
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
       await transmuter.connect(depositor).forceTransmute(await depositor.getAddress());
@@ -487,7 +487,7 @@ describe("Transmuter", () => {
 
     it("reverts when you are not overfilled", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, utils.parseEther("1000"));
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseEther("1000"));
       expect(transmuter.connect(minter).forceTransmute(await depositor.getAddress())).revertedWith("Transmuter: !overflow");
     });
 
@@ -498,7 +498,7 @@ describe("Transmuter", () => {
     it("returns userInfo", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, utils.parseEther("5000"));
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseEther("5000"));
       let multipleUsers = await transmuter.getMultipleUserInfo(0, 1);
       let userList = multipleUsers.theUserData;
       expect(userList.length).equal(2)
@@ -516,13 +516,13 @@ describe("Transmuter", () => {
     it("must be whitelisted to call distribute", async () => {
       await transmuter.connect(depositor).stake(utils.parseEther("1000"));
       expect(
-        transmuter.connect(depositor).distribute(alchemist.address, utils.parseEther("1000"))
+        transmuter.connect(depositor).distribute(formation.address, utils.parseEther("1000"))
       ).revertedWith("Transmuter: !whitelisted")
     });
 
     it("increases buffer size, but does not immediately increase allocations", async () => {
       await transmuter.connect(depositor).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, utils.parseEther("1000"))
+      await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseEther("1000"))
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       let bufferInfo = await transmuter.bufferInfo();
 
@@ -541,7 +541,7 @@ describe("Transmuter", () => {
         let blocksMined = 10;
         let stakeAmt = utils.parseEther("1000");
         await transmuter.connect(depositor).stake(stakeAmt);
-        await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, utils.parseEther("1000"))
+        await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseEther("1000"))
         await mineBlocks(ethers.provider, blocksMined);
         let userInfo = await transmuter.userInfo(await depositor.getAddress());
         let bufferInfo = await transmuter.bufferInfo();
@@ -557,7 +557,7 @@ describe("Transmuter", () => {
       it("increases buffer size, and userInfo() shows the correct state without an extra nudge", async () => {
         let stakeAmt = utils.parseEther("1000");
         await transmuter.connect(depositor).stake(stakeAmt);
-        await transmuter.connect(mockAlchemist).distribute(mockAlchemistAddress, stakeAmt)
+        await transmuter.connect(mockFormation).distribute(mockFormationAddress, stakeAmt)
         await mineBlocks(ethers.provider, 10);
         let userInfo = await transmuter.userInfo(await depositor.getAddress());
         let bufferInfo = await transmuter.bufferInfo();

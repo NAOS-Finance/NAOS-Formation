@@ -9,17 +9,17 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import {CDP} from "./libraries/alchemist/CDP.sol";
+import {CDP} from "./libraries/formation/CDP.sol";
 import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 import {ITransmuter} from "./interfaces/ITransmuter.sol";
 import {IMintableERC20} from "./interfaces/IMintableERC20.sol";
 import {IChainlink} from "./interfaces/IChainlink.sol";
 import {IVaultAdapter} from "./interfaces/IVaultAdapter.sol";
-import {Vault} from "./libraries/alchemist/Vault.sol";
+import {Vault} from "./libraries/formation/Vault.sol";
 
 import "hardhat/console.sol";
 
-// ERC20,removing ERC20 from the alchemist
+// ERC20,removing ERC20 from the formation
 //    ___    __        __                _               ___                              __         _ 
 //   / _ |  / / ____  / /  ___   __ _   (_) __ __       / _ \  ____ ___   ___ ___   ___  / /_  ___  (_)
 //  / __ | / / / __/ / _ \/ -_) /  ' \ / /  \ \ /      / ___/ / __// -_) (_-</ -_) / _ \/ __/ (_-< _   
@@ -32,7 +32,7 @@ import "hardhat/console.sol";
 //  /  _____  \  |  `----.|  `----.|  |  |  | |  |____ |  |  |  | |  | .----)   |       |  |     
 // /__/     \__\ |_______| \______||__|  |__| |_______||__|  |__| |__| |_______/        |__|     
                                                                                               
-contract Alchemist is  ReentrancyGuard {
+contract Formation is  ReentrancyGuard {
   using CDP for CDP.Data;
   using FixedPointMath for FixedPointMath.uq192x64;
   using Vault for Vault.Data;
@@ -207,8 +207,8 @@ contract Alchemist is  ReentrancyGuard {
       string(abi.encodePacked("al", _token.symbol()))
     )*/
   {
-    require(_governance != ZERO_ADDRESS, "Alchemist: governance address cannot be 0x0.");
-    require(_sentinel != ZERO_ADDRESS, "Alchemist: sentinel address cannot be 0x0.");
+    require(_governance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
+    require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
 
     token = _token;
     xtoken = _xtoken;
@@ -230,7 +230,7 @@ contract Alchemist is  ReentrancyGuard {
   ///
   /// @param _pendingGovernance the new pending governance.
   function setPendingGovernance(address _pendingGovernance) external onlyGov {
-    require(_pendingGovernance != ZERO_ADDRESS, "Alchemist: governance address cannot be 0x0.");
+    require(_pendingGovernance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
 
     pendingGovernance = _pendingGovernance;
 
@@ -250,7 +250,7 @@ contract Alchemist is  ReentrancyGuard {
 
   function setSentinel(address _sentinel) external onlyGov {
 
-    require(_sentinel != ZERO_ADDRESS, "Alchemist: sentinel address cannot be 0x0.");
+    require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
 
     sentinel = _sentinel;
 
@@ -266,7 +266,7 @@ contract Alchemist is  ReentrancyGuard {
 
     // Check that the transmuter address is not the zero address. Setting the transmuter to the zero address would break
     // transfers to the address because of `safeTransfer` checks.
-    require(_transmuter != ZERO_ADDRESS, "Alchemist: transmuter address cannot be 0x0.");
+    require(_transmuter != ZERO_ADDRESS, "Formation: transmuter address cannot be 0x0.");
 
     transmuter = _transmuter;
 
@@ -289,7 +289,7 @@ contract Alchemist is  ReentrancyGuard {
 
     // Check that the rewards address is not the zero address. Setting the rewards to the zero address would break
     // transfers to the address because of `safeTransfer` checks.
-    require(_rewards != ZERO_ADDRESS, "Alchemist: rewards address cannot be 0x0.");
+    require(_rewards != ZERO_ADDRESS, "Formation: rewards address cannot be 0x0.");
 
     rewards = _rewards;
 
@@ -305,7 +305,7 @@ contract Alchemist is  ReentrancyGuard {
 
     // Check that the harvest fee is within the acceptable range. Setting the harvest fee greater than 100% could
     // potentially break internal logic when calculating the harvest fee.
-    require(_harvestFee <= PERCENT_RESOLUTION, "Alchemist: harvest fee above maximum.");
+    require(_harvestFee <= PERCENT_RESOLUTION, "Formation: harvest fee above maximum.");
 
     harvestFee = _harvestFee;
 
@@ -320,8 +320,8 @@ contract Alchemist is  ReentrancyGuard {
   /// @param _limit the new collateralization limit.
   function setCollateralizationLimit(uint256 _limit) external onlyGov {
 
-    require(_limit >= MINIMUM_COLLATERALIZATION_LIMIT, "Alchemist: collateralization limit below minimum.");
-    require(_limit <= MAXIMUM_COLLATERALIZATION_LIMIT, "Alchemist: collateralization limit above maximum.");
+    require(_limit >= MINIMUM_COLLATERALIZATION_LIMIT, "Formation: collateralization limit below minimum.");
+    require(_limit <= MAXIMUM_COLLATERALIZATION_LIMIT, "Formation: collateralization limit above maximum.");
 
     _ctx.collateralizationLimit = FixedPointMath.uq192x64(_limit);
 
@@ -359,10 +359,10 @@ contract Alchemist is  ReentrancyGuard {
   /// @param _adapter the vault adapter of the active vault.
   function initialize(IVaultAdapter _adapter) external onlyGov {
 
-    require(!initialized, "Alchemist: already initialized");
+    require(!initialized, "Formation: already initialized");
 
-    require(transmuter != ZERO_ADDRESS, "Alchemist: cannot initialize transmuter address to 0x0");
-    require(rewards != ZERO_ADDRESS, "Alchemist: cannot initialize rewards address to 0x0");
+    require(transmuter != ZERO_ADDRESS, "Formation: cannot initialize transmuter address to 0x0");
+    require(rewards != ZERO_ADDRESS, "Formation: cannot initialize rewards address to 0x0");
 
     _updateActiveVault(_adapter);
 
@@ -581,7 +581,7 @@ contract Alchemist is  ReentrancyGuard {
       _cdp.totalDebt = _cdp.totalDebt.add(_remainingAmount);
       _cdp.totalCredit = 0;
 
-      _cdp.checkHealth(_ctx, "Alchemist: Loan-to-value ratio breached");
+      _cdp.checkHealth(_ctx, "Formation: Loan-to-value ratio breached");
     } else {
       _cdp.totalCredit = _totalCredit.sub(_amount);
     }
@@ -688,7 +688,7 @@ contract Alchemist is  ReentrancyGuard {
   ///
   /// This is used over a modifier to reduce the size of the contract
   modifier expectInitialized() {
-    require(initialized, "Alchemist: not initialized.");
+    require(initialized, "Formation: not initialized.");
     _;
   }
 
@@ -703,7 +703,7 @@ contract Alchemist is  ReentrancyGuard {
   ///
   ///
   modifier onlyGov() {
-    require(msg.sender == governance, "Alchemist: only governance.");
+    require(msg.sender == governance, "Formation: only governance.");
     _;
   }
   /// @dev Updates the active vault.
@@ -713,8 +713,8 @@ contract Alchemist is  ReentrancyGuard {
   ///
   /// @param _adapter the adapter for the new active vault.
   function _updateActiveVault(IVaultAdapter _adapter) internal {
-    require(_adapter != IVaultAdapter(ZERO_ADDRESS), "Alchemist: active vault address cannot be 0x0.");
-    require(_adapter.token() == token, "Alchemist: token mismatch.");
+    require(_adapter != IVaultAdapter(ZERO_ADDRESS), "Formation: active vault address cannot be 0x0.");
+    require(_adapter.token() == token, "Formation: token mismatch.");
 
     _vaults.push(Vault.Data({
       adapter: _adapter,
@@ -731,7 +731,7 @@ contract Alchemist is  ReentrancyGuard {
   ///
   /// @return the amount of funds that were recalled from the vault to this contract and the decreased vault value.
   function _recallFunds(uint256 _vaultId, uint256 _amount) internal returns (uint256, uint256) {
-    require(emergencyExit || msg.sender == governance || _vaultId != _vaults.lastIndex(), "Alchemist: not an emergency, not governance, and user does not have permission to recall funds from active vault");
+    require(emergencyExit || msg.sender == governance || _vaultId != _vaults.lastIndex(), "Formation: not an emergency, not governance, and user does not have permission to recall funds from active vault");
 
     Vault.Data storage _vault = _vaults.get(_vaultId);
     (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(address(this), _amount);
