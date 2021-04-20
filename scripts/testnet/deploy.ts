@@ -7,25 +7,32 @@ import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
 import { YearnControllerMock } from "../../types/YearnControllerMock";
 
-async function main() {
-  //
-  // Tokens
-  //
+let daiToken;
+let nUSD;
+let naosToken;
+
+let yearnControllerMock;
+let yearnVaultMock;
+
+let formation;
+let transmuter;
+let yearnVaultAdapter;
+
+async function deployToken() {
   const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
-  const daiToken = (await ERC20Mock.deploy("Mock DAI", "DAI", 18)) as Erc20;
+  daiToken = await ERC20Mock.deploy("Mock DAI", "DAI", 18);
   console.log(`[Deployed] Dai \n Address: ${daiToken.address}`);
 
   const NToken = await ethers.getContractFactory("NToken");
-  const nUSD = await NToken.deploy();
+  nUSD = await NToken.deploy();
   console.log(`[Deployed] NUSD \n Address: ${nUSD.address}`);
 
   const NAOSToken = await ethers.getContractFactory("NAOSToken");
-  const naosToken = await NAOSToken.deploy();
+  naosToken = await NAOSToken.deploy();
   console.log(`[Deployed] NAOS \n Address: ${naosToken.address}`);
+}
 
-  //
-  // A Mock YFI for testing
-  //
+async function deployYfi() {
   // const VaultAdapterMockFactory = await ethers.getContractFactory(
   //   "VaultAdapterMock"
   // );
@@ -35,29 +42,28 @@ async function main() {
   const YearnControllerMockFactory = await ethers.getContractFactory(
     "YearnControllerMock"
   );
-  const yearnControllerMock = await YearnControllerMockFactory.deploy();
+  yearnControllerMock = await YearnControllerMockFactory.deploy();
   console.log(
     `[Deployed] Yearn mock contracts: Controller \n Address: ${yearnControllerMock.address}`
   );
 
   const YearnVaultMock = await ethers.getContractFactory("YearnVaultMock");
-  const yearnVaultMock = await YearnVaultMock.deploy(
+  yearnVaultMock = await YearnVaultMock.deploy(
     daiToken.address,
     yearnControllerMock.address
   );
   console.log(
     `[Deployed] Yearn mock contracts: Vault \n Address: ${yearnVaultMock.address}`
   );
+}
 
-  //
-  // What we actaully interact with
-  //
+async function deployFormation() {
   const [deployer] = await ethers.getSigners();
   const governance = deployer.address;
   const sentinel = deployer.address;
 
   const FormationFactory = await ethers.getContractFactory("Formation");
-  const formation = (await FormationFactory.deploy(
+  formation = (await FormationFactory.deploy(
     daiToken.address,
     nUSD.address,
     governance,
@@ -68,7 +74,7 @@ async function main() {
   const YearnVaultAdapterFactory = await ethers.getContractFactory(
     "YearnVaultAdapter"
   );
-  const yearnVaultAdapter = await YearnVaultAdapterFactory.deploy(
+  yearnVaultAdapter = await YearnVaultAdapterFactory.deploy(
     yearnVaultMock.address,
     formation.address
   );
@@ -81,16 +87,18 @@ async function main() {
   console.log(`[Deployed] StakingPool \n Address: ${pools.address}`);
 
   const Transmuter = await ethers.getContractFactory("Transmuter");
-  const transmuter = (await Transmuter.deploy(
+  transmuter = (await Transmuter.deploy(
     daiToken.address,
     nUSD.address,
     governance
   )) as Transmuter;
   console.log(`[Deployed] Transmuter \n Address: ${transmuter.address}`);
+}
 
-  //
-  // Formation settings
-  //
+async function configureContract() {
+  const [deployer] = await ethers.getSigners();
+
+  // Formation
   await formation.setTransmuter(transmuter.address);
   console.log(`[Settings] Formation: setTransmuter`);
 
@@ -103,16 +111,20 @@ async function main() {
   await formation.initialize(yearnVaultAdapter.address);
   console.log(`[Settings] Formation: initialize`);
 
-  //
   // Transmuter settings
-  //
   await transmuter.setWhitelist(formation.address, true);
   console.log(`[Settings] Transmuter: setWhitelist`);
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
+(async () => {
+  try {
+    await deployToken();
+    await deployYfi();
+    await deployFormation();
+    await configureContract();
+    process.exit(0);
+  } catch (e) {
+    console.error(e);
     process.exit(1);
-  });
+  }
+})();
