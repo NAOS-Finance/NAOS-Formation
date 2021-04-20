@@ -4,3 +4,5 @@ coverage/
 artifacts/
 cache/
 secret.json
+.infuraId
+.secret
