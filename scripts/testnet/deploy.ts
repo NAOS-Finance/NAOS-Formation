@@ -2,13 +2,15 @@ import { ethers } from "hardhat";
 import { Erc20 } from "../../types/Erc20";
 import { Formation } from "../../types/Formation";
 import { Transmuter } from "../../types/Transmuter";
+import { NaosToken } from "../../types/NaosToken";
+import { NToken } from "../../types/NToken";
 import { VaultAdapterMock } from "../../types/VaultAdapterMock";
 import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
 import { YearnControllerMock } from "../../types/YearnControllerMock";
 
 let daiToken;
-let nUSD;
+let nUSD: NToken;
 let naosToken;
 
 let yearnControllerMock;
@@ -24,7 +26,7 @@ async function deployToken() {
   console.log(`[Deployed] Dai \n Address: ${daiToken.address}`);
 
   const NToken = await ethers.getContractFactory("NToken");
-  nUSD = await NToken.deploy();
+  nUSD = (await NToken.deploy()) as NToken;
   console.log(`[Deployed] NUSD \n Address: ${nUSD.address}`);
 
   const NAOSToken = await ethers.getContractFactory("NAOSToken");
@@ -97,6 +99,10 @@ async function deployFormation() {
 
 async function configureContract() {
   const [deployer] = await ethers.getSigners();
+
+  // Token
+  nUSD.setWhitelist(formation.address, true);
+  nUSD.setCeiling(formation.address, ethers.constants.MaxUint256);
 
   // Formation
   await formation.setTransmuter(transmuter.address);
