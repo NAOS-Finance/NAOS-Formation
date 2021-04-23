@@ -9,7 +9,7 @@ import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
 import { YearnControllerMock } from "../../types/YearnControllerMock";
 
-let daiToken;
+let daiToken: Erc20;
 let nUSD: NToken;
 let naosToken;
 
@@ -22,7 +22,7 @@ let yearnVaultAdapter;
 
 async function deployToken() {
   const ERC20Mock = await ethers.getContractFactory("ERC20Mock");
-  daiToken = await ERC20Mock.deploy("Mock DAI", "DAI", 18);
+  daiToken = (await ERC20Mock.deploy("Mock DAI", "DAI", 18)) as Erc20;
   console.log(`[Deployed] Dai \n Address: ${daiToken.address}`);
 
   const NToken = await ethers.getContractFactory("NToken");
@@ -30,7 +30,7 @@ async function deployToken() {
   console.log(`[Deployed] NUSD \n Address: ${nUSD.address}`);
 
   const NAOSToken = await ethers.getContractFactory("NAOSToken");
-  naosToken = await NAOSToken.deploy();
+  naosToken = (await NAOSToken.deploy()) as NaosToken;
   console.log(`[Deployed] NAOS \n Address: ${naosToken.address}`);
 }
 
@@ -78,7 +78,10 @@ async function deployFormation() {
   );
   yearnVaultAdapter = await YearnVaultAdapterFactory.deploy(
     yearnVaultMock.address,
-    formation.address
+    formation.address,
+    {
+      gasLimit: 8000000,
+    }
   );
   console.log(
     `[Deployed] Yearn mock contracts: Adapter \n Address: ${yearnVaultAdapter.address}`
@@ -90,8 +93,8 @@ async function deployFormation() {
 
   const Transmuter = await ethers.getContractFactory("Transmuter");
   transmuter = (await Transmuter.deploy(
-    daiToken.address,
     nUSD.address,
+    daiToken.address,
     governance
   )) as Transmuter;
   console.log(`[Deployed] Transmuter \n Address: ${transmuter.address}`);
@@ -101,8 +104,11 @@ async function configureContract() {
   const [deployer] = await ethers.getSigners();
 
   // Token
-  nUSD.setWhitelist(formation.address, true);
-  nUSD.setCeiling(formation.address, ethers.constants.MaxUint256);
+  await nUSD.setWhitelist(formation.address, true);
+  console.log(`[Settings] NUSD: setWhiteList`);
+
+  await nUSD.setCeiling(formation.address, ethers.constants.MaxUint256);
+  console.log(`[Settings] NUSD: setCeiling`);
 
   // Formation
   await formation.setTransmuter(transmuter.address);
@@ -114,7 +120,7 @@ async function configureContract() {
   await formation.setHarvestFee(1000);
   console.log(`[Settings] Formation: setHarvestFee`);
 
-  await formation.initialize(yearnVaultAdapter.address);
+  await formation.initialize(yearnVaultAdapter.address, { gasLimit: 8000000 });
   console.log(`[Settings] Formation: initialize`);
 
   // Transmuter settings
