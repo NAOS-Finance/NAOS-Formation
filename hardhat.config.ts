@@ -3,8 +3,6 @@ import "@nomiclabs/hardhat-ethers";
 import "hardhat-typechain";
 import "solidity-coverage";
 
-import { ALCHEMY_API_KEY, PRIVATE_KEY } from './secret.json';
-
 export default {
   namedAccounts: {
     deployer: 0,
@@ -37,10 +35,6 @@ export default {
       chainId: 1337,
       allowUnlimitedContractSize: false,
       blockGasLimit: 25000000
-    },
-    ropsten: {
-      url: `https://eth-ropsten.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
-      accounts: [`0x${PRIVATE_KEY}`],
     }
   },
   solidity: {
