@@ -2,7 +2,6 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-//import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -18,19 +17,6 @@ import {IVaultAdapter} from "./interfaces/IVaultAdapter.sol";
 import {Vault} from "./libraries/formation/Vault.sol";
 
 import "hardhat/console.sol";
-
-// ERC20,removing ERC20 from the formation
-//    ___    __        __                _               ___                              __         _ 
-//   / _ |  / / ____  / /  ___   __ _   (_) __ __       / _ \  ____ ___   ___ ___   ___  / /_  ___  (_)
-//  / __ | / / / __/ / _ \/ -_) /  ' \ / /  \ \ /      / ___/ / __// -_) (_-</ -_) / _ \/ __/ (_-< _   
-// /_/ |_|/_/  \__/ /_//_/\__/ /_/_/_//_/  /_\_\      /_/    /_/   \__/ /___/\__/ /_//_/\__/ /___/(_)  
-//  
-//      ___       __        ______  __    __   _______ .___  ___.  __       _______..___________.
-//     /   \     |  |      /      ||  |  |  | |   ____||   \/   | |  |     /       ||           |
-//    /  ^  \    |  |     |  ,----'|  |__|  | |  |__   |  \  /  | |  |    |   (----``---|  |----`
-//   /  /_\  \   |  |     |  |     |   __   | |   __|  |  |\/|  | |  |     \   \        |  |     
-//  /  _____  \  |  `----.|  `----.|  |  |  | |  |____ |  |  |  | |  | .----)   |       |  |     
-// /__/     \__\ |_______| \______||__|  |__| |_______||__|  |__| |__| |_______/        |__|     
                                                                                               
 contract Formation is  ReentrancyGuard {
   using CDP for CDP.Data;
@@ -203,7 +189,7 @@ contract Formation is  ReentrancyGuard {
   )
     public
     /*ERC20(
-      string(abi.encodePacked("Alchemic ", _token.name())),
+      string(abi.encodePacked("Formation ", _token.name())),
       string(abi.encodePacked("al", _token.symbol()))
     )*/
   {
@@ -568,7 +554,7 @@ contract Formation is  ReentrancyGuard {
   ///
   /// This function reverts if the debt is increased and the CDP health check fails.
   ///
-  /// @param _amount the amount of alchemic tokens to borrow.
+  /// @param _amount the amount of formation tokens to borrow.
   function mint(uint256 _amount) external nonReentrant noContractAllowed onLinkCheck expectInitialized {
 
     CDP.Data storage _cdp = _cdps[msg.sender];
@@ -629,7 +615,7 @@ contract Formation is  ReentrancyGuard {
     return _cdp.totalDeposited;
   }
 
-  /// @dev Get the total amount of alchemic tokens borrowed from a CDP.
+  /// @dev Get the total amount of formation tokens borrowed from a CDP.
   ///
   /// @param _account the user account of the CDP to query.
   ///
