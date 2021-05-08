@@ -7,3 +7,4 @@ secret.json
 .infuraId
 .secret
 .DS_Store
+.env

@@ -1,12 +1,13 @@
+require('dotenv').config();
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-ethers";
 import "hardhat-typechain";
 import "solidity-coverage";
 import { HardhatUserConfig } from "hardhat/types";
 
-const fs = require("fs");
-const infuraProjectId = fs.readFileSync(".infuraId").toString();
-const privateKey = fs.readFileSync(".secret").toString();
+
+const infuraProjectId = process.env.INFURA_TOKEN ? process.env.INFURA_TOKEN : '';
+const privateKey = process.env.PV ? process.env.PV : '';
 
 const config: HardhatUserConfig = {
   // namedAccounts: {

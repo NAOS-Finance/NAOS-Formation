@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@studydefi/money-legos": "^2.4.1",
-    "dotenv": "^8.2.0",
+    "dotenv": "^9.0.0",
     "mocha": "^8.2.1"
   }
 }
