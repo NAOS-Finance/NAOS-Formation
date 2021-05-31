@@ -94,6 +94,7 @@ contract StakingPools is ReentrancyGuard {
     IMintableERC20 _reward,
     address _governance
   ) public {
+    require(address(_reward) != address(0), "StakingPools: reward address cannot be 0x0");
     require(_governance != address(0), "StakingPools: governance address cannot be 0x0");
 
     reward = _reward;
@@ -148,6 +149,7 @@ contract StakingPools is ReentrancyGuard {
   ///
   /// @return the identifier for the newly created pool.
   function createPool(IERC20 _token) external onlyGovernance returns (uint256) {
+    require(address(_token) != address(0), "StakingPools: token address cannot be 0x0");
     require(tokenPoolIds[_token] == 0, "StakingPools: token already has a pool");
 
     uint256 _poolId = _pools.length();

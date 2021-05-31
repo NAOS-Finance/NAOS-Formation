@@ -84,6 +84,8 @@ contract Transmuter is Context {
     );
 
     constructor(address _NToken, address _Token, address _governance) public {
+        require(_NToken != ZERO_ADDRESS, "Transmuter: NToken address cannot be 0x0");
+        require(_Token != ZERO_ADDRESS, "Transmuter: Token address cannot be 0x0");
         require(_governance != ZERO_ADDRESS, "Transmuter: 0 gov");
         governance = _governance;
         NToken = _NToken;
@@ -178,6 +180,7 @@ contract Transmuter is Context {
     ///
     /// sets the length (in blocks) of one full distribution phase
     function setTransmutationPeriod(uint256 newTransmutationPeriod) public onlyGov() {
+        require(newTransmutationPeriod > 0, "Transmuter: transmutation period cannot be 0");
         TRANSMUTATION_PERIOD = newTransmutationPeriod;
         emit TransmuterPeriodUpdated(TRANSMUTATION_PERIOD);
     }
