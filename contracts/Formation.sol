@@ -362,7 +362,6 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _adapter the adapter for the vault the system will migrate to.
   function migrate(IVaultAdapter _adapter) external expectInitialized onlyGov {
-
     _updateActiveVault(_adapter);
   }
 
@@ -701,6 +700,9 @@ contract Formation is  ReentrancyGuard {
   function _updateActiveVault(IVaultAdapter _adapter) internal {
     require(_adapter != IVaultAdapter(ZERO_ADDRESS), "Formation: active vault address cannot be 0x0.");
     require(_adapter.token() == token, "Formation: token mismatch.");
+    
+    Vault.Data storage _activeVault = _vaults.last();
+    require(_adapter != IVaultAdapter(_activeVault.adapter), "Formation: new active vault address cannot be the same as current active vault");
 
     _vaults.push(Vault.Data({
       adapter: _adapter,
