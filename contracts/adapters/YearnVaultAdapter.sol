@@ -59,8 +59,10 @@ contract YearnVaultAdapter is IVaultAdapter {
   /// @dev Deposits tokens into the vault.
   ///
   /// @param _amount the amount of tokens to deposit into the vault.
-  function deposit(uint256 _amount) external override {
-    vault.deposit(_amount);
+  ///
+  /// @return the deposit amount to the vault.
+  function deposit(uint256 _amount) external override returns(uint) {
+    return vault.deposit(_amount);
   }
 
   /// @dev Withdraws tokens from the vault to the recipient.

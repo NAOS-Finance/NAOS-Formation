@@ -17,7 +17,9 @@ interface IVaultAdapter {
   /// @dev Deposits funds into the vault.
   ///
   /// @param _amount  the amount of funds to deposit.
-  function deposit(uint256 _amount) external;
+  ///
+  /// @return the deposit amount to the vault.
+  function deposit(uint256 _amount) external returns (uint);
 
   /// @dev Attempts to withdraw funds from the wrapped vault.
   ///
