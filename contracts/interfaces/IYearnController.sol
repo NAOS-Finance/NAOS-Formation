@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.6.12;
+pragma solidity 0.6.12;
 
 interface IYearnController {
   function balanceOf(address _token) external view returns (uint256);
