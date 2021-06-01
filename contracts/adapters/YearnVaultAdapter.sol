@@ -60,8 +60,10 @@ contract YearnVaultAdapter is IVaultAdapter {
 
   /// @dev Deposits tokens into the vault.
   ///
+  /// This function reverts if the caller is not the admin.
+  ///
   /// @param _amount the amount of tokens to deposit into the vault.
-  function deposit(uint256 _amount) external override {
+  function deposit(uint256 _amount) external override onlyAdmin {
     vault.deposit(_amount);
   }
 
