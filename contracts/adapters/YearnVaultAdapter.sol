@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.6.12;
+pragma solidity 0.6.12;
 
 import "hardhat/console.sol";
 
@@ -29,6 +29,8 @@ contract YearnVaultAdapter is IVaultAdapter {
   uint256 public decimals;
 
   constructor(IyVaultV2 _vault, address _admin) public {
+    require(address(_vault) != address(0), "YearnVaultAdapter: vault address cannot be 0x0");
+    require(_admin != address(0), "YearnVaultAdapter: admin address cannot be 0x0");
     vault = _vault;
     admin = _admin;
     updateApproval();
@@ -57,8 +59,10 @@ contract YearnVaultAdapter is IVaultAdapter {
 
   /// @dev Deposits tokens into the vault.
   ///
+  /// This function reverts if the caller is not the admin.
+  ///
   /// @param _amount the amount of tokens to deposit into the vault.
-  function deposit(uint256 _amount) external override {
+  function deposit(uint256 _amount) external override onlyAdmin {
     vault.deposit(_amount);
   }
 
