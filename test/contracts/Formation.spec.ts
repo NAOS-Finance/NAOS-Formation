@@ -295,6 +295,7 @@ describe("Formation", () => {
     let nUsd: NToken;
     let formation: Formation;
     let adapter: VaultAdapterMock;
+    let newAdapter: VaultAdapterMock;
     let harvestFee = 1000;
     let pctReso = 10000;
     let transmuterContract: Transmuter;
@@ -374,6 +375,15 @@ describe("Formation", () => {
           });
         });
 
+        context("when adapter is same as current active vault", async () => {
+          it("reverts", async () => {
+            const activeVaultAddress = adapter.address
+            expect(formation.migrate(activeVaultAddress)).revertedWith(
+              "Formation: new active vault address cannot be the same as current active vault"
+            );
+          });
+        });
+
         context("when adapter token mismatches", () => {
           const tokenAddress = ethers.utils.getAddress(
             "0xffffffffffffffffffffffffffffffffffffffff"
@@ -396,7 +406,10 @@ describe("Formation", () => {
 
         context("when conditions are met", () => {
           beforeEach(async () => {
-            await formation.migrate(adapter.address);
+            newAdapter = (await VaultAdapterMockFactory.connect(deployer).deploy(
+              token.address
+            )) as VaultAdapterMock;
+            await formation.migrate(newAdapter.address);
           });
 
           it("increments the vault count", async () => {
@@ -740,7 +753,6 @@ describe("Formation", () => {
         const formationTokenBalPre = await token.balanceOf(formation.address);
         await formation.connect(minter).liquidate(liqAmt);
         const formationTokenBalPost = await token.balanceOf(formation.address);
-        console.log("pre", formationTokenBalPre.toString(), formationTokenBalPost.toString())
         const transmuterEndingTokenBal = await token.balanceOf(transmuterContract.address);
         expect(formationTokenBalPost).equal(0);
         expect(transmuterEndingTokenBal).equal(liqAmt);
