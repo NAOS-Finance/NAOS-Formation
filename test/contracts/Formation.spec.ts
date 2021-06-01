@@ -8,7 +8,7 @@ import { Formation } from "../../types/Formation";
 import { StakingPools } from "../../types/StakingPools";
 import { NToken } from "../../types/NToken";
 import { Erc20Mock } from "../../types/Erc20Mock";
-import { MAXIMUM_U256, ZERO_ADDRESS } from "../utils/helpers";
+import { MAXIMUM_U256, ZERO_ADDRESS, DEFAULT_FLUSH_ACTIVATOR } from "../utils/helpers";
 import { VaultAdapterMock } from "../../types/VaultAdapterMock";
 import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
@@ -76,10 +76,6 @@ describe("Formation", () => {
       //   ) as Formation;
     });
 
-    // it("copies the decimals of the base asset", async () => {
-    //   expect(await formation.decimals()).equal(await token.decimals());
-    // });
-
     context("when governance is the zero address", () => {
       it("reverts", async () => {
         expect(
@@ -87,9 +83,38 @@ describe("Formation", () => {
             token.address,
             nUsd.address,
             ZERO_ADDRESS,
-            await sentinel.getAddress()
+            await sentinel.getAddress(),
+            DEFAULT_FLUSH_ACTIVATOR
           )
         ).revertedWith("Formation: governance address cannot be 0x0.");
+      });
+    });
+
+    context("when sentinel is the zero address", () => {
+      it("reverts", async () => {
+        expect(
+          FormationFactory.connect(deployer).deploy(
+            token.address,
+            nUsd.address,
+            await governance.getAddress(),
+            ZERO_ADDRESS,
+            DEFAULT_FLUSH_ACTIVATOR
+          )
+        ).revertedWith("Formation: sentinel address cannot be 0x0.");
+      });
+    });
+
+    context("when flushActivator is set to zero", () => {
+      it("reverts", async () => {
+        expect(
+          FormationFactory.connect(deployer).deploy(
+            token.address,
+            nUsd.address,
+            await governance.getAddress(),
+            await sentinel.getAddress(),
+            0
+          )
+        ).revertedWith("Formation: flushActivator should be larger than 0");
       });
     });
   });
@@ -129,7 +154,8 @@ describe("Formation", () => {
         token.address,
         nUsd.address,
         await governance.getAddress(),
-        await sentinel.getAddress()
+        await sentinel.getAddress(),
+        DEFAULT_FLUSH_ACTIVATOR
       )) as Formation;
 
     });
@@ -323,7 +349,8 @@ describe("Formation", () => {
         token.address,
         nUsd.address,
         await governance.getAddress(),
-        await sentinel.getAddress()
+        await sentinel.getAddress(),
+        DEFAULT_FLUSH_ACTIVATOR
       )) as Formation;
 
       await formation
