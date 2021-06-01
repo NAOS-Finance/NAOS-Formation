@@ -193,6 +193,8 @@ contract Formation is  ReentrancyGuard {
       string(abi.encodePacked("al", _token.symbol()))
     )*/
   {
+    require(address(_token) != ZERO_ADDRESS, "Formation: token address cannot be 0x0.");
+    require(address(_xtoken) != ZERO_ADDRESS, "Formation: xtoken address cannot be 0x0.");
     require(_governance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
     require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
 
