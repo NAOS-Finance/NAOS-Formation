@@ -65,7 +65,9 @@ contract YearnVaultAdapter is IVaultAdapter {
   ///
   /// @return the deposit amount to the vault.
   function deposit(uint256 _amount) external override returns(uint) {
-    return vault.deposit(_amount);
+    uint depositAmount = vault.deposit(_amount);
+    require(uint256(depositAmount) == _amount, 'YearnVaultAdapter: Deposit amount to vault is not the same as expected');
+    return depositAmount;
   }
 
   /// @dev Withdraws tokens from the vault to the recipient.
