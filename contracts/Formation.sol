@@ -673,13 +673,6 @@ contract Formation is  ReentrancyGuard {
     _;
   }
 
-  /// @dev Checks that the current message sender or caller is a specific address.
-  ///
-  /// @param _expectedCaller the expected caller.
-  function _expectCaller(address _expectedCaller) internal {
-    require(msg.sender == _expectedCaller, "");
-  }
-
   /// @dev Checks that the current message sender or caller is the governance address.
   ///
   ///
