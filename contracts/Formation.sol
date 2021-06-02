@@ -433,11 +433,6 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @return the amount of tokens flushed to the active vault.
   function flush() external nonReentrant expectInitialized returns (uint256) {
-
-    // Prevent flushing to the active vault when an emergency exit is enabled to prevent potential loss of funds if
-    // the active vault is poisoned for any reason.
-    require(!emergencyExit, "emergency pause enabled");
-
     return flushActiveVault();
   }
 
@@ -448,6 +443,10 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @return the amount of tokens flushed to the active vault.
   function flushActiveVault() internal returns (uint256) {
+
+    // Prevent flushing to the active vault when an emergency exit is enabled to prevent potential loss of funds if
+    // the active vault is poisoned for any reason.
+    require(!emergencyExit, "emergency pause enabled");
 
     Vault.Data storage _activeVault = _vaults.last();
     uint256 _depositedAmount = _activeVault.depositAll();
