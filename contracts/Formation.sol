@@ -228,10 +228,10 @@ contract Formation is  ReentrancyGuard {
   /// This function reverts if the caller is not the new pending governance.
   function acceptGovernance() external  {
     require(msg.sender == pendingGovernance,"sender is not pendingGovernance");
-    address _pendingGovernance = pendingGovernance;
-    governance = _pendingGovernance;
 
-    emit GovernanceUpdated(_pendingGovernance);
+    governance = pendingGovernance;
+
+    emit GovernanceUpdated(pendingGovernance);
   }
 
   function setSentinel(address _sentinel) external onlyGov {

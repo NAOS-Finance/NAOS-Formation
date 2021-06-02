@@ -121,10 +121,9 @@ contract StakingPools is ReentrancyGuard {
   function acceptGovernance() external {
     require(msg.sender == pendingGovernance, "StakingPools: only pending governance");
 
-    address _pendingGovernance = pendingGovernance;
-    governance = _pendingGovernance;
+    governance = pendingGovernance;
 
-    emit GovernanceUpdated(_pendingGovernance);
+    emit GovernanceUpdated(pendingGovernance);
   }
 
   /// @dev Sets the distribution reward rate.
