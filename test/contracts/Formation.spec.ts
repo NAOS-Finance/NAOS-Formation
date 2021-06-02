@@ -684,17 +684,17 @@ describe("Formation", () => {
           await formation.connect(deployer).deposit(parseEther("1"));
         });
 
-        it("deposit() flushes funds if amount >= flushActivator", async () => {
-          let balBeforeWhale = await token.balanceOf(adapter.address);
-          await formation.connect(minter).deposit(parseEther("100000"));
-          let balAfterWhale = await token.balanceOf(adapter.address);
-          expect(balBeforeWhale).equal(0);
-          expect(balAfterWhale).equal(parseEther("100001"));
-        });
-
-        it("deposit() does not flush funds if amount < flushActivator", async () => {
+        it("deposit() flushes funds if formation balance >= flushActivator", async () => {
           let balBeforeWhale = await token.balanceOf(adapter.address);
           await formation.connect(minter).deposit(parseEther("99999"));
+          let balAfterWhale = await token.balanceOf(adapter.address);
+          expect(balBeforeWhale).equal(0);
+          expect(balAfterWhale).equal(parseEther("100000"));
+        });
+
+        it("deposit() does not flush funds if formation balance < flushActivator", async () => {
+          let balBeforeWhale = await token.balanceOf(adapter.address);
+          await formation.connect(minter).deposit(parseEther("99998"));
           let balAfterWhale = await token.balanceOf(adapter.address);
           expect(balBeforeWhale).equal(0);
           expect(balAfterWhale).equal(0);
@@ -864,38 +864,6 @@ describe("Formation", () => {
   
           expect(balAfter).equal(balBefore.sub(depositAmt));
           expect(await nUsd.balanceOf(await minter.getAddress())).equal(mintAmt);
-        });
-  
-        describe("flushActivator", async () => {
-          beforeEach(async () => {
-            await nUsd.connect(deployer).setCeiling(formation.address, parseEther("200000"));
-            await token.mint(await minter.getAddress(), parseEther("200000"));
-            await token.connect(minter).approve(formation.address, parseEther("200000"));
-          });
-  
-          it("mint() flushes funds if amount >= flushActivator", async () => {
-            await formation.connect(minter).deposit(parseEther("50000"));
-            await formation.connect(minter).deposit(parseEther("50000"));
-            await formation.connect(minter).deposit(parseEther("50000"));
-            await formation.connect(minter).deposit(parseEther("50000"));
-            let balBeforeWhale = await token.balanceOf(adapter.address);
-            await formation.connect(minter).mint(parseEther("100000"));
-            let balAfterWhale = await token.balanceOf(adapter.address);
-            expect(balBeforeWhale).equal(0);
-            expect(balAfterWhale).equal(parseEther("200000"));
-          });
-
-          it("mint() does not flush funds if amount < flushActivator", async () => {
-            await formation.connect(minter).deposit(parseEther("50000"));
-            await formation.connect(minter).deposit(parseEther("50000"));
-            await formation.connect(minter).deposit(parseEther("50000"));
-            await formation.connect(minter).deposit(parseEther("50000"));
-            let balBeforeWhale = await token.balanceOf(adapter.address);
-            await formation.connect(minter).mint(parseEther("99999"));
-            let balAfterWhale = await token.balanceOf(adapter.address);
-            expect(balBeforeWhale).equal(0);
-            expect(balAfterWhale).equal(0);
-          });
         });
       });
     });
