@@ -322,7 +322,7 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _emergencyExit if the contract should enter emergency exit mode.
   function setEmergencyExit(bool _emergencyExit) external {
-    require(msg.sender == governance || msg.sender == sentinel, "");
+    require(msg.sender == governance || msg.sender == sentinel, "Formation: sender should be governance or sentinel");
 
     emergencyExit = _emergencyExit;
 
