@@ -658,7 +658,7 @@ contract Formation is  ReentrancyGuard {
     }
     _;
   }
-  /// @dev Checks that caller is not a eoa.
+  /// @dev Checks that caller is an eoa.
   ///
   /// This is used to prevent contracts from interacting.
   modifier noContractAllowed() {
