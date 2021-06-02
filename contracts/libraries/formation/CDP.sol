@@ -52,7 +52,7 @@ library CDP {
 
   /// @dev Gets if the CDP is considered healthy.
   ///
-  /// A CDP is healthy if its collateralization ratio is greater than the global collateralization limit.
+  /// A CDP is healthy if its collateralization ratio is greater than or equal to the global collateralization limit.
   ///
   /// @return if the CDP is healthy.
   function isHealthy(Data storage _self, Context storage _ctx) internal view returns (bool) {
