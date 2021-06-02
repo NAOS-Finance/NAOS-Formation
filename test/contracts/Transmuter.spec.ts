@@ -9,7 +9,7 @@ import { VaultAdapterMock } from "../../types/VaultAdapterMock";
 
 import { Erc20Mock } from "../../types/Erc20Mock";
 import { getAddress, parseEther } from "ethers/lib/utils";
-import { MAXIMUM_U256, ZERO_ADDRESS, mineBlocks } from "../utils/helpers";
+import { MAXIMUM_U256, ZERO_ADDRESS, mineBlocks, DEFAULT_FLUSH_ACTIVATOR } from "../utils/helpers";
 import { Transmuter } from "../../types/Transmuter";
 import { SSL_OP_EPHEMERAL_RSA } from "constants";
 
@@ -87,7 +87,8 @@ describe("Transmuter", () => {
       token.address,
       nUsd.address,
       await governance.getAddress(),
-      await sentinel.getAddress()
+      await sentinel.getAddress(),
+      DEFAULT_FLUSH_ACTIVATOR
     )) as Formation;
     transmuter = (await TransmuterFactory.connect(deployer).deploy(
       nUsd.address,

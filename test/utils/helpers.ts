@@ -5,6 +5,7 @@ export const ONE = BigNumber.from(1);
 export const MAXIMUM_U32 = ONE.shl(31);
 export const MAXIMUM_U256 = ONE.shl(255);
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const DEFAULT_FLUSH_ACTIVATOR = BigNumber.from('100000000000000000000000') // 100000 ether
 
 export const snapshot = async (
   provider: ethers.providers.JsonRpcProvider
