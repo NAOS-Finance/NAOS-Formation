@@ -134,6 +134,30 @@ describe("Transmuter", () => {
     preTestTotalNUSDSupply = await nUsd.totalSupply();
   });
 
+  context("when NToken is the zero address", () => {
+    it("reverts", async () => {
+      expect(
+        TransmuterFactory.connect(deployer).deploy(
+          ZERO_ADDRESS,
+          token.address,
+          await governance.getAddress()
+        )
+      ).revertedWith("Transmuter: NToken address cannot be 0x0");
+    });
+  });
+
+  context("when token is the zero address", () => {
+    it("reverts", async () => {
+      expect(
+        TransmuterFactory.connect(deployer).deploy(
+          nUsd.address,
+          ZERO_ADDRESS,
+          await governance.getAddress()
+        )
+      ).revertedWith("Transmuter: Token address cannot be 0x0");
+    });
+  });
+
   describe("stake()", () => {
 
     it("stakes 1000 nUsd and reads the correct amount", async () => {
