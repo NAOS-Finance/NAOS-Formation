@@ -321,7 +321,7 @@ contract MultiSigWallet {
                 count += 1;
     }
 
-    /// @dev Returns total number of transactions after filers are applied.
+    /// @dev Returns total number of transactions after filters are applied.
     /// @param pending Include pending transactions.
     /// @param executed Include executed transactions.
     /// @return count Total number of transactions after filters are applied.

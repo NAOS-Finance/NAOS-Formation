@@ -154,7 +154,7 @@ contract Formation is  ReentrancyGuard {
   /// @dev The total amount the native token deposited into the system that is owned by external users.
   uint256 public totalDeposited;
 
-  /// @dev when movemetns are bigger than this number flush is activated.
+  /// @dev when movements are bigger than this number flush is activated.
   uint256 public flushActivator;
 
   /// @dev A flag indicating if the contract has been initialized yet.
