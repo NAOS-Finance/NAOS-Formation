@@ -204,7 +204,7 @@ contract Formation is  ReentrancyGuard {
     xtoken = _xtoken;
     governance = _governance;
     sentinel = _sentinel;
-    flushActivator = _flushActivator; // recommend: 100000 ether
+    flushActivator = _flushActivator; // Recommend(if the token decimals is 18): 100000 ether
 
     //_setupDecimals(_token.decimals());
     uint256 COLL_LIMIT = MINIMUM_COLLATERALIZATION_LIMIT.mul(2);
