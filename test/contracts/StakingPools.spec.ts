@@ -46,6 +46,17 @@ describe("StakingPools", () => {
     )) as StakingPools;
   });
 
+  context("when reward token address is the zero address", () => {
+    it("reverts", async () => {
+      expect(
+        StakingPoolsFactory.connect(deployer).deploy(
+          ZERO_ADDRESS,
+          await governance.getAddress(),
+        )
+      ).revertedWith("StakingPools: reward address cannot be 0x0");
+    });
+  });
+
   describe("set governance", () => {
     it("only allows governance", async () => {
       expect(pools.setPendingGovernance(await newGovernance.getAddress())).revertedWith(
@@ -128,6 +139,12 @@ describe("StakingPools", () => {
 
     context("when caller is governance", async () => {
       beforeEach(async () => (pools = pools.connect(governance)));
+
+      it("only allows none-zero token address", async () => {
+        expect(pools.createPool(ZERO_ADDRESS)).revertedWith(
+          "StakingPools: token address cannot be 0x0"
+        );
+      });
 
       it("emits PoolCreated event", async () => {
         expect(pools.createPool(token.address))

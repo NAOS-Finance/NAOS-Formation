@@ -1,4 +1,4 @@
-pragma solidity ^0.6.12;
+pragma solidity 0.6.12;
 
 interface IyVaultV2 {
     function token() external view returns (address);

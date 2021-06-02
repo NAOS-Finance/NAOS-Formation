@@ -76,6 +76,36 @@ describe("Formation", () => {
       //   ) as Formation;
     });
 
+    // it("copies the decimals of the base asset", async () => {
+    //   expect(await formation.decimals()).equal(await token.decimals());
+    // });
+
+    context("when token is the zero address", () => {
+      it("reverts", async () => {
+        expect(
+          FormationFactory.connect(deployer).deploy(
+            ZERO_ADDRESS,
+            nUsd.address,
+            await governance.getAddress(),
+            await sentinel.getAddress()
+          )
+        ).revertedWith("Formation: token address cannot be 0x0.");
+      });
+    });
+
+    context("when xtoken is the zero address", () => {
+      it("reverts", async () => {
+        expect(
+          FormationFactory.connect(deployer).deploy(
+            token.address,
+            ZERO_ADDRESS,
+            await governance.getAddress(),
+            await sentinel.getAddress()
+          )
+        ).revertedWith("Formation: xtoken address cannot be 0x0.");
+      });
+    });
+
     context("when governance is the zero address", () => {
       it("reverts", async () => {
         expect(

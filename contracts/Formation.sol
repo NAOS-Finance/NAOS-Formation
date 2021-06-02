@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.6.12;
+pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import {Math} from "@openzeppelin/contracts/math/Math.sol";
@@ -194,6 +194,8 @@ contract Formation is  ReentrancyGuard {
       string(abi.encodePacked("al", _token.symbol()))
     )*/
   {
+    require(address(_token) != ZERO_ADDRESS, "Formation: token address cannot be 0x0.");
+    require(address(_xtoken) != ZERO_ADDRESS, "Formation: xtoken address cannot be 0x0.");
     require(_governance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
     require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
     require(_flushActivator > 0, "Formation: flushActivator should be larger than 0");
