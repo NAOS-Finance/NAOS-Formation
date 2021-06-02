@@ -699,26 +699,6 @@ describe("Formation", () => {
           expect(balBeforeWhale).equal(0);
           expect(balAfterWhale).equal(0);
         });
-
-        it("withdraw() flushes funds if amount >= flushActivator", async () => {
-          await formation.connect(minter).deposit(parseEther("50000"));
-          await formation.connect(minter).deposit(parseEther("50000"));
-          let balBeforeWhaleWithdraw = await token.balanceOf(adapter.address);
-          await formation.connect(minter).withdraw(parseEther("100000"));
-          let balAfterWhaleWithdraw = await token.balanceOf(adapter.address);
-          expect(balBeforeWhaleWithdraw).equal(0);
-          expect(balAfterWhaleWithdraw).equal(parseEther("1"));
-        });
-
-        it("withdraw() does not flush funds if amount < flushActivator", async () => {
-          await formation.connect(minter).deposit(parseEther("50000"));
-          await formation.connect(minter).deposit(parseEther("50000"));
-          let balBeforeWhaleWithdraw = await token.balanceOf(adapter.address);
-          await formation.connect(minter).withdraw(parseEther("99999"));
-          let balAfterWhaleWithdraw = await token.balanceOf(adapter.address);
-          expect(balBeforeWhaleWithdraw).equal(0);
-          expect(balAfterWhaleWithdraw).equal(0);
-        });
       })
     });
 
