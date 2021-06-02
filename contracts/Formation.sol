@@ -485,19 +485,15 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _amount the amount of collateral to withdraw.
   function withdraw(uint256 _amount) external nonReentrant noContractAllowed expectInitialized returns (uint256, uint256) {
-
     CDP.Data storage _cdp = _cdps[msg.sender];
     require(block.number > _cdp.lastDeposit, "");
 
     _cdp.update(_ctx);
 
     (uint256 _withdrawnAmount, uint256 _decreasedValue) = _withdrawFundsTo(msg.sender, _amount);
-
     _cdp.totalDeposited = _cdp.totalDeposited.sub(_decreasedValue, "Exceeds withdrawable amount");
     _cdp.checkHealth(_ctx, "Action blocked: unhealthy collateralization ratio");
-    if(_amount >= flushActivator) {
-      flushActiveVault();
-    }
+
     emit TokensWithdrawn(msg.sender, _amount, _withdrawnAmount, _decreasedValue);
 
     return (_withdrawnAmount, _decreasedValue);
