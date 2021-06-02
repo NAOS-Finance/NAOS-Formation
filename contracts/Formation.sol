@@ -460,14 +460,14 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _amount the amount of collateral to deposit.
   function deposit(uint256 _amount) external nonReentrant noContractAllowed expectInitialized {
+
     require(!emergencyExit, "emergency pause enabled");
     
     CDP.Data storage _cdp = _cdps[msg.sender];
     _cdp.update(_ctx);
 
     token.safeTransferFrom(msg.sender, address(this), _amount);
-    uint256 currentBalance = token.balanceOf(address(this));
-    if(currentBalance >= flushActivator) {
+    if(_amount >= flushActivator) {
       flushActiveVault();
     }
     totalDeposited = totalDeposited.add(_amount);
@@ -571,6 +571,9 @@ contract Formation is  ReentrancyGuard {
     }
 
     xtoken.mint(msg.sender, _amount);
+    if(_amount >= flushActivator) {
+      flushActiveVault();
+    }
   }
 
   /// @dev Gets the number of vaults in the vault list.
