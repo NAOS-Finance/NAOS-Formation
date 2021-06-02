@@ -185,8 +185,7 @@ contract Formation is  ReentrancyGuard {
     IMintableERC20 _token,
     IMintableERC20 _xtoken,
     address _governance,
-    address _sentinel,
-    uint256 _flushActivator
+    address _sentinel
   )
     public
     /*ERC20(
@@ -198,13 +197,12 @@ contract Formation is  ReentrancyGuard {
     require(address(_xtoken) != ZERO_ADDRESS, "Formation: xtoken address cannot be 0x0.");
     require(_governance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
     require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
-    require(_flushActivator > 0, "Formation: flushActivator should be larger than 0");
 
     token = _token;
     xtoken = _xtoken;
     governance = _governance;
     sentinel = _sentinel;
-    flushActivator = _flushActivator; // Recommend(if the token decimals is 18): 100000 ether
+    flushActivator = 100000 ether;// change for non 18 digit tokens
 
     //_setupDecimals(_token.decimals());
     uint256 COLL_LIMIT = MINIMUM_COLLATERALIZATION_LIMIT.mul(2);
