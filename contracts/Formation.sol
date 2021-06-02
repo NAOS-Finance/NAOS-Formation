@@ -364,6 +364,8 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _adapter the adapter for the vault the system will migrate to.
   function migrate(IVaultAdapter _adapter) external expectInitialized onlyGov {
+    Vault.Data storage _activeVault = _vaults.last();
+    require(_adapter != IVaultAdapter(_activeVault.adapter), "Formation: new active vault address cannot be the same as current active vault");  
 
     _updateActiveVault(_adapter);
   }
