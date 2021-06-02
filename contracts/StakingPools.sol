@@ -185,7 +185,6 @@ contract StakingPools is ReentrancyGuard {
         continue;
       }
 
-      // FIXME
       _totalRewardWeight = _totalRewardWeight.sub(_currentRewardWeight).add(_rewardWeights[_poolId]);
       _pool.rewardWeight = _rewardWeights[_poolId];
 

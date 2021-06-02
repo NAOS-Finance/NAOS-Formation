@@ -189,10 +189,6 @@ contract Formation is  ReentrancyGuard {
     uint256 _flushActivator
   )
     public
-    /*ERC20(
-      string(abi.encodePacked("Formation ", _token.name())),
-      string(abi.encodePacked("al", _token.symbol()))
-    )*/
   {
     require(address(_token) != ZERO_ADDRESS, "Formation: token address cannot be 0x0.");
     require(address(_xtoken) != ZERO_ADDRESS, "Formation: xtoken address cannot be 0x0.");
@@ -396,8 +392,6 @@ contract Formation is  ReentrancyGuard {
 
       if (_distributeAmount > 0) {
         _distributeToTransmuter(_distributeAmount);
-        
-        // token.safeTransfer(transmuter, _distributeAmount); previous version call
       }
     }
 
