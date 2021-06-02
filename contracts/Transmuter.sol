@@ -275,6 +275,7 @@ contract Transmuter is Context {
         runPhasedDistribution()
         updateAccount(msg.sender)
         updateAccount(toTransmute)
+        checkIfNewUser()
     {
         //load into memory
         address sender = msg.sender;
