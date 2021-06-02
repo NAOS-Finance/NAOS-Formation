@@ -83,7 +83,8 @@ describe("Formation", () => {
             ZERO_ADDRESS,
             nUsd.address,
             await governance.getAddress(),
-            await sentinel.getAddress()
+            await sentinel.getAddress(),
+            DEFAULT_FLUSH_ACTIVATOR
           )
         ).revertedWith("Formation: token address cannot be 0x0.");
       });
@@ -96,7 +97,8 @@ describe("Formation", () => {
             token.address,
             ZERO_ADDRESS,
             await governance.getAddress(),
-            await sentinel.getAddress()
+            await sentinel.getAddress(),
+            DEFAULT_FLUSH_ACTIVATOR
           )
         ).revertedWith("Formation: xtoken address cannot be 0x0.");
       });
