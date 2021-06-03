@@ -24,7 +24,8 @@ contract VaultAdapterMock is IVaultAdapter {
 
   function deposit(uint256 _amount) external override returns (uint) { }
 
-  function withdraw(address _recipient, uint256 _amount) external override {
+  function withdraw(address _recipient, uint256 _amount) external override returns (uint) {
     _token.safeTransfer(_recipient, _amount);
+    return _amount;
   }
 }

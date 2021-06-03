@@ -18,7 +18,7 @@ interface IVaultAdapter {
   ///
   /// @param _amount  the amount of funds to deposit.
   ///
-  /// @return the deposit amount to the vault.
+  /// @return the shared token amount got from vault.
   function deposit(uint256 _amount) external returns (uint);
 
   /// @dev Attempts to withdraw funds from the wrapped vault.
@@ -27,5 +27,7 @@ interface IVaultAdapter {
   ///
   /// @param _recipient the recipient of the funds.
   /// @param _amount    the amount of funds to withdraw.
-  function withdraw(address _recipient, uint256 _amount) external;
+  ///
+  /// @return the redeemed token amount got from vault.
+  function withdraw(address _recipient, uint256 _amount) external returns (uint);
 }

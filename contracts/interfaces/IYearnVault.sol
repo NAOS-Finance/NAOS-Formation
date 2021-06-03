@@ -8,8 +8,8 @@ import {IDetailedERC20} from "./IDetailedERC20.sol";
 interface IYearnVault  {
     function balanceOf(address user)  external view returns (uint);
     function pricePerShare()  external view returns (uint);
-    function deposit(uint amount)  external returns (uint);
-    function withdraw(uint shares, address recipient)  external returns (uint); 
+    function deposit(uint amount) external returns (uint);
+    function withdraw(uint shares, address recipient) external returns (uint); 
     function token() external view returns (IDetailedERC20);
     function totalAssets()  external view returns (uint);
     function decimals() external  view returns (uint8);

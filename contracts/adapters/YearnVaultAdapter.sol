@@ -63,11 +63,10 @@ contract YearnVaultAdapter is IVaultAdapter {
   ///
   /// @param _amount the amount of tokens to deposit into the vault.
   ///
-  /// @return the deposit amount to the vault.
+  /// @return the shared token amount got from vault.
   function deposit(uint256 _amount) external override returns(uint) {
-    uint depositAmount = vault.deposit(_amount);
-    require(uint256(depositAmount) == _amount, 'YearnVaultAdapter: Deposit amount to vault is not the same as expected');
-    return depositAmount;
+    uint sharedTokenAmount = vault.deposit(_amount);
+    return sharedTokenAmount;
   }
 
   /// @dev Withdraws tokens from the vault to the recipient.
@@ -76,8 +75,11 @@ contract YearnVaultAdapter is IVaultAdapter {
   ///
   /// @param _recipient the account to withdraw the tokes to.
   /// @param _amount    the amount of tokens to withdraw.
-  function withdraw(address _recipient, uint256 _amount) external override onlyAdmin {
-    vault.withdraw(_tokensToShares(_amount),_recipient);
+  ///
+  /// @return the redeemed token amount got from vault.
+  function withdraw(address _recipient, uint256 _amount) onlyAdmin external override returns(uint) {
+    uint redeemedTokenAmount = vault.withdraw(_tokensToShares(_amount),_recipient);
+    return redeemedTokenAmount;
   }
 
   /// @dev Updates the vaults approval of the token to be the maximum value.
