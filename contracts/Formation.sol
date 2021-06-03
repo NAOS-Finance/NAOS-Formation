@@ -180,6 +180,9 @@ contract Formation is  ReentrancyGuard {
 
   /// @dev The minimum returned amount needed to be on peg according to the oracle.
   uint256 public pegMinimum;
+
+  /// @dev The maximum update time of oracle (seconds)
+  uint256 public oracleUpdateDelay;
   
   constructor(
     IMintableERC20 _token,
@@ -318,9 +321,10 @@ contract Formation is  ReentrancyGuard {
     emit CollateralizationLimitUpdated(_limit);
   }
   /// @dev Set oracle.
-  function setOracleAddress(address Oracle, uint256 peg) external onlyGov {
+  function setOracleAddress(address Oracle, uint256 peg, uint256 delay) external onlyGov {
     _linkGasOracle = Oracle;
     pegMinimum = peg;
+    oracleUpdateDelay = delay;
   }
   /// @dev Sets if the contract should enter emergency exit mode.
   ///
@@ -659,8 +663,16 @@ contract Formation is  ReentrancyGuard {
   /// This is used over a modifier limit of pegged interactions.
   modifier onLinkCheck() {
     if(pegMinimum > 0 ){
-      uint256 oracleAnswer = uint256(IChainlink(_linkGasOracle).latestAnswer());
-      require(oracleAnswer > pegMinimum, "off peg limitation");
+      (
+        uint80 roundId,
+        int256 answer,
+        uint256 startedAt,
+        uint256 updatedAt,
+        uint80 answeredInRound
+      ) = IChainlink(_linkGasOracle).latestRoundData();
+      require(updatedAt > 0, "Round not complete");
+      require(block.timestamp <= updatedAt.add(oracleUpdateDelay), "Update time exceeded");
+      require(uint256(answer) > pegMinimum, "off peg limitation");
     }
     _;
   }
