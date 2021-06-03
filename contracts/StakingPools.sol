@@ -121,10 +121,9 @@ contract StakingPools is ReentrancyGuard {
   function acceptGovernance() external {
     require(msg.sender == pendingGovernance, "StakingPools: only pending governance");
 
-    address _pendingGovernance = pendingGovernance;
-    governance = _pendingGovernance;
+    governance = pendingGovernance;
 
-    emit GovernanceUpdated(_pendingGovernance);
+    emit GovernanceUpdated(pendingGovernance);
   }
 
   /// @dev Sets the distribution reward rate.
@@ -185,7 +184,6 @@ contract StakingPools is ReentrancyGuard {
         continue;
       }
 
-      // FIXME
       _totalRewardWeight = _totalRewardWeight.sub(_currentRewardWeight).add(_rewardWeights[_poolId]);
       _pool.rewardWeight = _rewardWeights[_poolId];
 

@@ -154,7 +154,7 @@ contract Formation is  ReentrancyGuard {
   /// @dev The total amount the native token deposited into the system that is owned by external users.
   uint256 public totalDeposited;
 
-  /// @dev when movemetns are bigger than this number flush is activated.
+  /// @dev when movements are bigger than this number flush is activated.
   uint256 public flushActivator;
 
   /// @dev A flag indicating if the contract has been initialized yet.
@@ -192,10 +192,6 @@ contract Formation is  ReentrancyGuard {
     uint256 _flushActivator
   )
     public
-    /*ERC20(
-      string(abi.encodePacked("Formation ", _token.name())),
-      string(abi.encodePacked("al", _token.symbol()))
-    )*/
   {
     require(address(_token) != ZERO_ADDRESS, "Formation: token address cannot be 0x0.");
     require(address(_xtoken) != ZERO_ADDRESS, "Formation: xtoken address cannot be 0x0.");
@@ -235,10 +231,10 @@ contract Formation is  ReentrancyGuard {
   /// This function reverts if the caller is not the new pending governance.
   function acceptGovernance() external  {
     require(msg.sender == pendingGovernance,"sender is not pendingGovernance");
-    address _pendingGovernance = pendingGovernance;
-    governance = _pendingGovernance;
 
-    emit GovernanceUpdated(_pendingGovernance);
+    governance = pendingGovernance;
+
+    emit GovernanceUpdated(pendingGovernance);
   }
 
   function setSentinel(address _sentinel) external onlyGov {
@@ -330,7 +326,7 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _emergencyExit if the contract should enter emergency exit mode.
   function setEmergencyExit(bool _emergencyExit) external {
-    require(msg.sender == governance || msg.sender == sentinel, "");
+    require(msg.sender == governance || msg.sender == sentinel, "Formation: sender should be governance or sentinel");
 
     emergencyExit = _emergencyExit;
 
@@ -400,8 +396,6 @@ contract Formation is  ReentrancyGuard {
 
       if (_distributeAmount > 0) {
         _distributeToTransmuter(_distributeAmount);
-        
-        // token.safeTransfer(transmuter, _distributeAmount); previous version call
       }
     }
 
@@ -676,7 +670,7 @@ contract Formation is  ReentrancyGuard {
     }
     _;
   }
-  /// @dev Checks that caller is not a eoa.
+  /// @dev Checks that caller is an eoa.
   ///
   /// This is used to prevent contracts from interacting.
   modifier noContractAllowed() {
@@ -689,13 +683,6 @@ contract Formation is  ReentrancyGuard {
   modifier expectInitialized() {
     require(initialized, "Formation: not initialized.");
     _;
-  }
-
-  /// @dev Checks that the current message sender or caller is a specific address.
-  ///
-  /// @param _expectedCaller the expected caller.
-  function _expectCaller(address _expectedCaller) internal {
-    require(msg.sender == _expectedCaller, "");
   }
 
   /// @dev Checks that the current message sender or caller is the governance address.

@@ -40,6 +40,10 @@ contract NToken is AccessControl, ERC20("NAOS USD", "nUSD") {
   mapping (address => uint256) public hasMinted;
 
   event Paused(address formationAddress, bool isPaused);
+
+  event WhitelistUpdated(address toWhitelist, bool state);
+
+  event BlacklistUpdated(address toBlacklist);
   
   constructor() public {
     _setupRole(ADMIN_ROLE, msg.sender);
@@ -75,6 +79,7 @@ contract NToken is AccessControl, ERC20("NAOS USD", "nUSD") {
 
   function setWhitelist(address _toWhitelist, bool _state) external onlyAdmin {
     whiteList[_toWhitelist] = _state;
+    emit WhitelistUpdated(_toWhitelist, _state);
   }
   /// This function reverts if the caller does not have the admin role.
   ///
@@ -88,6 +93,7 @@ contract NToken is AccessControl, ERC20("NAOS USD", "nUSD") {
   /// @param _toBlacklist the account to mint tokens to.
   function setBlacklist(address _toBlacklist) external onlySentinel {
     blacklist[_toBlacklist] = true;
+    emit BlacklistUpdated(_toBlacklist);
   }
   /// This function reverts if the caller does not have the admin role.
   function pauseFormation(address _toPause, bool _state) external onlySentinel {
