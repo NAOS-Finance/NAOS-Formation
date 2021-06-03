@@ -335,6 +335,10 @@ contract StakingPools is ReentrancyGuard {
   }
 
   /// @dev Updates all of the pools.
+  /// 
+  /// Warning: 
+  /// Make the staking plan before add a new pool. If the amount of pool becomes too many would
+  /// result the transaction failed due to high gas usage in for-loop.
   function _updatePools() internal {
     for (uint256 _poolId = 0; _poolId < _pools.length(); _poolId++) {
       Pool.Data storage _pool = _pools.get(_poolId);
