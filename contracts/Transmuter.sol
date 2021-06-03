@@ -444,10 +444,10 @@ contract Transmuter is Context {
     /// This function reverts if the caller is not the new pending governance.
     function acceptGovernance() external  {
         require(msg.sender == pendingGovernance,"!pendingGovernance");
-        address _pendingGovernance = pendingGovernance;
-        governance = _pendingGovernance;
 
-        emit GovernanceUpdated(_pendingGovernance);
+        governance = pendingGovernance;
+
+        emit GovernanceUpdated(pendingGovernance);
     }
 
     /// This function reverts if the caller is not governance
