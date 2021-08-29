@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IERC20Burnable.sol";
-
 import "hardhat/console.sol";
 
 contract Transmuter is Context {
@@ -38,6 +37,9 @@ contract Transmuter is Context {
     uint256 public totalDividendPoints;
     uint256 public unclaimedDividends;
 
+    uint256 public USDT_CONST;
+    uint256 private pendingz_USDT;
+
     /// @dev formation addresses whitelisted
     mapping (address => bool) public whiteList;
 
@@ -63,9 +65,12 @@ contract Transmuter is Context {
         require(_NToken != ZERO_ADDRESS, "Transmuter: NToken address cannot be 0x0");
         require(_Token != ZERO_ADDRESS, "Transmuter: Token address cannot be 0x0");
         require(_governance != ZERO_ADDRESS, "Transmuter: 0 gov");
+        require(IERC20Burnable(_Token).decimals() <= IERC20Burnable(_NToken).decimals(),"Transmuter: xtoken decimals should be larger than token decimals");
+        USDT_CONST = uint256(10)**(uint256(IERC20Burnable(_NToken).decimals()).sub(uint256(IERC20Burnable(_Token).decimals())));
         governance = _governance;
         NToken = _NToken;
         Token = _Token;
+  
         TRANSMUTATION_PERIOD = 50;
     }
 
@@ -216,24 +221,25 @@ contract Transmuter is Context {
         tokensInBucket[sender] = 0;
 
         // check bucket overflow
-        if (pendingz > depositedNTokens[sender]) {
-            diff = pendingz.sub(depositedNTokens[sender]);
+        if (pendingz.mul(USDT_CONST) > depositedNTokens[sender]) {
+            diff = pendingz.mul(USDT_CONST).sub(depositedNTokens[sender]);
 
             // remove overflow
-            pendingz = depositedNTokens[sender];
+            pendingz = depositedNTokens[sender].div(USDT_CONST);
         }
 
+        pendingz_USDT = pendingz.mul(USDT_CONST);
         // decrease ntokens
-        depositedNTokens[sender] = depositedNTokens[sender].sub(pendingz);
+        depositedNTokens[sender] = depositedNTokens[sender].sub(pendingz_USDT);
 
         // BURN ntokens
-        IERC20Burnable(NToken).burn(pendingz);
+        IERC20Burnable(NToken).burn(pendingz_USDT);
 
         // adjust total
-        totalSupplyNtokens = totalSupplyNtokens.sub(pendingz);
+        totalSupplyNtokens = totalSupplyNtokens.sub(pendingz_USDT);
 
         // reallocate overflow
-        increaseAllocations(diff);
+        increaseAllocations(diff.div(USDT_CONST));
 
         // add payout
         realisedTokens[sender] = realisedTokens[sender].add(pendingz);
@@ -256,9 +262,10 @@ contract Transmuter is Context {
         //load into memory
         address sender = msg.sender;
         uint256 pendingz = tokensInBucket[toTransmute];
+        
         // check restrictions
         require(
-            pendingz > depositedNTokens[toTransmute],
+            pendingz.mul(USDT_CONST) > depositedNTokens[toTransmute],
             "Transmuter: !overflow"
         );
 
@@ -266,22 +273,21 @@ contract Transmuter is Context {
         tokensInBucket[toTransmute] = 0;
 
         // calculaate diffrence
-        uint256 diff = pendingz.sub(depositedNTokens[toTransmute]);
-
+        uint256 diff = pendingz.mul(USDT_CONST).sub(depositedNTokens[toTransmute]);
         // remove overflow
-        pendingz = depositedNTokens[toTransmute];
-
+        pendingz = depositedNTokens[toTransmute].div(USDT_CONST);
+        pendingz_USDT = pendingz.mul(USDT_CONST);
         // decrease ntokens
-        depositedNTokens[toTransmute] = 0;
+        depositedNTokens[toTransmute] = depositedNTokens[toTransmute].sub(pendingz_USDT);
 
         // BURN ntokens
-        IERC20Burnable(NToken).burn(pendingz);
+        IERC20Burnable(NToken).burn(pendingz_USDT);
 
         // adjust total
-        totalSupplyNtokens = totalSupplyNtokens.sub(pendingz);
+        totalSupplyNtokens = totalSupplyNtokens.sub(pendingz_USDT);
 
         // reallocate overflow
-        tokensInBucket[sender] = tokensInBucket[sender].add(diff);
+        tokensInBucket[sender] = tokensInBucket[sender].add(diff.div(USDT_CONST));
 
         // add payout
         realisedTokens[toTransmute] = realisedTokens[toTransmute].add(pendingz);
@@ -365,7 +371,7 @@ contract Transmuter is Context {
             uint256 realised
         )
     {
-        uint256 _depositedAl = depositedNTokens[user];
+        uint256 _depositedN = depositedNTokens[user];
         uint256 _toDistribute = buffer.mul(block.number.sub(lastDepositBlock)).div(TRANSMUTATION_PERIOD);
         if(block.number.sub(lastDepositBlock) > TRANSMUTATION_PERIOD){
             _toDistribute = buffer;
@@ -373,7 +379,7 @@ contract Transmuter is Context {
         uint256 _pendingdivs = _toDistribute.mul(depositedNTokens[user]).div(totalSupplyNtokens);
         uint256 _inbucket = tokensInBucket[user].add(dividendsOwing(user));
         uint256 _realised = realisedTokens[user];
-        return (_depositedAl, _pendingdivs, _inbucket, _realised);
+        return (_depositedN, _pendingdivs, _inbucket, _realised);
     }
 
     /// @dev Gets the status of multiple users in one call
