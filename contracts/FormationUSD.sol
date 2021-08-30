@@ -159,7 +159,9 @@ contract FormationUSD is ReentrancyGuard {
 
     /// @dev The maximum update time of oracle (seconds)
     uint256 public oracleUpdateDelay;
-
+    
+    /// @dev The const number (10^n) to align the decimals in this system
+    /// Eg. USDT(6 decimals), so the const number should be 10^(18 - 6) to make the number in this system 18 decimals
     uint256 public USDT_CONST;
 
     constructor(
