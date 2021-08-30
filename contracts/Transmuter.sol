@@ -38,7 +38,6 @@ contract Transmuter is Context {
     uint256 public unclaimedDividends;
 
     uint256 public USDT_CONST;
-    uint256 private pendingz_USDT;
 
     /// @dev formation addresses whitelisted
     mapping (address => bool) public whiteList;
@@ -213,6 +212,7 @@ contract Transmuter is Context {
     /// reverts if there are no pendingdivs or tokensInBucket
     function transmute() public runPhasedDistribution() updateAccount(msg.sender) {
         address sender = msg.sender;
+        uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[sender];
         uint256 diff;
 
@@ -260,7 +260,7 @@ contract Transmuter is Context {
         checkIfNewUser()
     {
         //load into memory
-        address sender = msg.sender;
+        uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[toTransmute];
         
         // check restrictions
@@ -287,7 +287,7 @@ contract Transmuter is Context {
         totalSupplyNtokens = totalSupplyNtokens.sub(pendingz_USDT);
 
         // reallocate overflow
-        tokensInBucket[sender] = tokensInBucket[sender].add(diff.div(USDT_CONST));
+        tokensInBucket[msg.sender] = tokensInBucket[msg.sender].add(diff.div(USDT_CONST));
 
         // add payout
         realisedTokens[toTransmute] = realisedTokens[toTransmute].add(pendingz);

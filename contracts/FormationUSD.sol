@@ -502,7 +502,6 @@ contract FormationUSD is ReentrancyGuard {
     /// additional funds.
     ///
     /// @param _amount the amount of collateral to deposit.
-
     function deposit(uint256 _amount)
         external
         nonReentrant
@@ -521,7 +520,6 @@ contract FormationUSD is ReentrancyGuard {
         if (amount_USDT >= flushActivator) {
             flushActiveVault();
         }
-        //totalDeposited = totalDeposited.add(amount_USDT);
         totalDeposited = totalDeposited.add(_amount);
 
         _cdp.totalDeposited = _cdp.totalDeposited.add(amount_USDT);
@@ -795,7 +793,7 @@ contract FormationUSD is ReentrancyGuard {
                 block.timestamp <= updatedAt.add(oracleUpdateDelay),
                 "Update time exceeded"
             );
-            require(uint256(answer).mul(USDT_CONST) > pegMinimum, "off peg limitation");
+            require(uint256(answer) > pegMinimum, "off peg limitation");
         }
         _;
     }

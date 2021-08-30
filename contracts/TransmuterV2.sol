@@ -42,7 +42,6 @@ contract TransmuterV2 is Context {
     uint256 public unclaimedDividends;
 
     uint256 public USDT_CONST;
-    uint256 pendingz_USDT;
 
     /// @dev formation addresses whitelisted
     mapping(address => bool) public whiteList;
@@ -317,6 +316,7 @@ contract TransmuterV2 is Context {
         updateAccount(msg.sender)
     {
         address sender = msg.sender;
+        uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[sender];
         uint256 diff;
 
@@ -365,7 +365,7 @@ contract TransmuterV2 is Context {
         checkIfNewUser
     {
         //load into memory
-        address sender = msg.sender;
+        uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[toTransmute];
         
         // check restrictions
@@ -392,7 +392,7 @@ contract TransmuterV2 is Context {
         totalSupplyNtokens = totalSupplyNtokens.sub(pendingz_USDT);
 
         // reallocate overflow
-        tokensInBucket[sender] = tokensInBucket[sender].add(diff.div(USDT_CONST));
+        tokensInBucket[msg.sender] = tokensInBucket[msg.sender].add(diff.div(USDT_CONST));
 
         // add payout
         realisedTokens[toTransmute] = realisedTokens[toTransmute].add(pendingz);
@@ -405,7 +405,7 @@ contract TransmuterV2 is Context {
         // force payout of realised tokens of the toTransmute address
         realisedTokens[toTransmute] = 0;
         IERC20Burnable(token).safeTransfer(toTransmute, value);
-        emit ForcedTransmutation(sender, toTransmute, value);
+        emit ForcedTransmutation(msg.sender, toTransmute, value);
     }
 
     /// @dev Transmutes and unstakes all nTokens
