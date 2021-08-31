@@ -298,6 +298,10 @@ contract TransmuterV2 is Context {
 
         // requires approval of NToken first
         address sender = msg.sender;
+
+        // normalize amount to fit the digit of token
+        amount = amount.div(USDT_CONST).mul(USDT_CONST);
+
         //require tokens transferred in;
         IERC20Burnable(NToken).safeTransferFrom(sender, address(this), amount);
         totalSupplyNtokens = totalSupplyNtokens.add(amount);
