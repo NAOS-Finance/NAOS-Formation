@@ -162,18 +162,28 @@ describe("Transmuter", () => {
   describe("stake()", () => {
 
     it("stakes 1000 nUsd and reads the correct amount", async () => {
-      await transmuter.stake(1000);
+      await transmuter.stake(utils.parseEther("1000"));
       expect(
         await transmuter.depositedNTokens(await depositor.getAddress())
-      ).equal(1000);
+      ).equal(utils.parseEther("1000"));
     });
 
     it("stakes 1000 nUsd two times and reads the correct amount", async () => {
-      await transmuter.stake(1000);
-      await transmuter.stake(1000);
+      await transmuter.stake(utils.parseEther("1000"));
+      await transmuter.stake(utils.parseEther("1000"));
       expect(
         await transmuter.depositedNTokens(await depositor.getAddress())
-      ).equal(2000);
+      ).equal(utils.parseEther("2000"));
+    });
+
+    it("stakes 1000.123456789 nUsd two times and reads the correct amount", async () => {
+      await transmuter.stake(utils.parseEther("1000.123456789"));
+      expect(
+        await transmuter.depositedNTokens(await depositor.getAddress())
+      ).equal(utils.parseEther("1000.123456"));
+      expect(
+        await nUsd.balanceOf(await depositor.getAddress())
+      ).equal(utils.parseEther("5000").sub(utils.parseEther("1000.123456")));
     });
 
   });
