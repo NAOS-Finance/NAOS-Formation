@@ -36,7 +36,7 @@ library CDP {
     if (_earnedYield > _self.totalDebt) {
       uint256 _currentTotalDebt = _self.totalDebt;
       _self.totalDebt = 0;
-      _self.totalCredit = _earnedYield.sub(_currentTotalDebt);
+      _self.totalCredit = _self.totalCredit + _earnedYield.sub(_currentTotalDebt);
     } else {
       _self.totalDebt = _self.totalDebt.sub(_earnedYield);
     }
