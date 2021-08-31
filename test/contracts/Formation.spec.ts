@@ -434,7 +434,7 @@ describe("Formation", () => {
           it("reverts", async () => {
             const activeVaultAddress = adapter.address
             expect(formation.migrate(activeVaultAddress)).revertedWith(
-              "Formation: new active vault address cannot be the same as current active vault"
+              "Adapter already in use"
             );
           });
         });

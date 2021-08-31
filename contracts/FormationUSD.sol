@@ -159,6 +159,9 @@ contract FormationUSD is ReentrancyGuard {
 
     /// @dev The maximum update time of oracle (seconds)
     uint256 public oracleUpdateDelay;
+
+    /// @dev A mapping of adapter addresses to keep track of vault adapters that have already been added
+    mapping(IVaultAdapter => bool) public adapters;
     
     /// @dev The const number (10^n) to align the decimals in this system
     /// Eg. USDT(6 decimals), so the const number should be 10^(18 - 6) to make the number in this system 18 decimals
@@ -403,12 +406,6 @@ contract FormationUSD is ReentrancyGuard {
         expectInitialized
         onlyGov
     {
-        Vault.Data storage _activeVault = _vaults.last();
-        require(
-            _adapter != IVaultAdapter(_activeVault.adapter),
-            "Formation: new active vault address cannot be the same as current active vault"
-        );
-
         _updateActiveVault(_adapter);
     }
 
@@ -837,6 +834,8 @@ contract FormationUSD is ReentrancyGuard {
             "Formation: active vault address cannot be 0x0."
         );
         require(_adapter.token() == token, "Formation: token mismatch.");
+        require(!adapters[_adapter], "Adapter already in use");
+        adapters[_adapter] = true;
 
         _vaults.push(Vault.Data({adapter: _adapter, totalDeposited: 0}));
 

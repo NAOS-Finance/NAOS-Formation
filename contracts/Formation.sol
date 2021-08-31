@@ -183,6 +183,9 @@ contract Formation is  ReentrancyGuard {
 
   /// @dev The maximum update time of oracle (seconds)
   uint256 public oracleUpdateDelay;
+
+  /// @dev A mapping of adapter addresses to keep track of vault adapters that have already been added
+  mapping(IVaultAdapter => bool) public adapters;
   
   constructor(
     IMintableERC20 _token,
@@ -366,9 +369,6 @@ contract Formation is  ReentrancyGuard {
   ///
   /// @param _adapter the adapter for the vault the system will migrate to.
   function migrate(IVaultAdapter _adapter) external expectInitialized onlyGov {
-    Vault.Data storage _activeVault = _vaults.last();
-    require(_adapter != IVaultAdapter(_activeVault.adapter), "Formation: new active vault address cannot be the same as current active vault");  
-
     _updateActiveVault(_adapter);
   }
 
@@ -701,6 +701,8 @@ contract Formation is  ReentrancyGuard {
   function _updateActiveVault(IVaultAdapter _adapter) internal {
     require(_adapter != IVaultAdapter(ZERO_ADDRESS), "Formation: active vault address cannot be 0x0.");
     require(_adapter.token() == token, "Formation: token mismatch.");
+    require(!adapters[_adapter], "Adapter already in use");
+    adapters[_adapter] = true;
 
     _vaults.push(Vault.Data({
       adapter: _adapter,
