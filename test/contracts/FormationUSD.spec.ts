@@ -796,7 +796,7 @@ describe("Formation", () => {
         expect(formation.connect(minter).repay(repayAmtUSD, 0)).revertedWith("SafeMath: subtraction overflow")
       })
       it("liquidate max amount possible if trying to liquidate too much", async () => {
-        let liqAmt = depositAmt;
+        let liqAmt = depositAmt.mul(USDT_CONST);
         await formation.connect(minter).deposit(depositAmt);
         await formation.connect(minter).mint(mintAmt);
         await transmuterContract.connect(minter).stake(mintAmt);
@@ -805,7 +805,7 @@ describe("Formation", () => {
         expect(transBal).equal(mintAmt.div(USDT_CONST));
       })
       it("liquidates funds from vault if not enough in the buffer", async () => {
-        let liqAmt = parseUnits("600",6);
+        let liqAmt = parseUnits("600",18);
         await formation.connect(minter).deposit(depositAmt);
         await formation.connect(governance).flush();
         await formation.connect(minter).deposit(mintAmt.div(USDT_CONST).div(2));
@@ -816,11 +816,11 @@ describe("Formation", () => {
         const formationTokenBalPost = await token.balanceOf(formation.address);
         const transmuterEndingTokenBal = await token.balanceOf(transmuterContract.address);
         expect(formationTokenBalPost).equal(0);
-        expect(transmuterEndingTokenBal).equal(liqAmt);
+        expect(transmuterEndingTokenBal).equal(liqAmt.div(USDT_CONST));
       })
       it("liquidates the minimum necessary from the formation buffer", async () => {
         let dep2Amt = parseUnits("500",6);
-        let liqAmt = parseUnits("200",6);
+        let liqAmt = parseUnits("200",18);
         await formation.connect(minter).deposit(parseUnits("2000",6));
         await formation.connect(governance).flush();
         await formation.connect(minter).deposit(dep2Amt);
@@ -831,8 +831,8 @@ describe("Formation", () => {
         const formationTokenBalPost = await token.balanceOf(formation.address);
 
         const transmuterEndingTokenBal = await token.balanceOf(transmuterContract.address);
-        expect(formationTokenBalPost).equal(dep2Amt.sub(liqAmt));
-        expect(transmuterEndingTokenBal).equal(liqAmt);
+        expect(formationTokenBalPost).equal(dep2Amt.sub(liqAmt.div(USDT_CONST)));
+        expect(transmuterEndingTokenBal).equal(liqAmt.div(USDT_CONST));
       })
       it("deposits, mints nUsd, repays, and has no outstanding debt", async () => {
         await formation.connect(minter).deposit(depositAmt.sub(parseUnits("1000",6)));
@@ -863,7 +863,7 @@ describe("Formation", () => {
         await formation.connect(minter).deposit(depositAmt);
         await formation.connect(minter).mint(mintAmt);
         await transmuterContract.connect(minter).stake(mintAmt);
-        await formation.connect(minter).liquidate(mintAmt.div(USDT_CONST));
+        await formation.connect(minter).liquidate(mintAmt);
         expect( await formation.connect(minter).getCdpTotalDeposited(await minter.getAddress())).equal(depositAmt.sub(mintAmt.div(USDT_CONST)))
       });
     });

@@ -622,20 +622,22 @@ contract FormationUSD is ReentrancyGuard {
         returns (uint256, uint256)
     {
         require(_amount > 0, "amount is zero");
-        uint256 amount_USDT = _amount.mul(USDT_CONST);
+
         CDP.Data storage _cdp = _cdps[msg.sender];
         _cdp.update(_ctx);
+
         // don't attempt to liquidate more than is possible
-        if (amount_USDT > _cdp.totalDebt) {
-            amount_USDT = _cdp.totalDebt;
+        if (_amount > _cdp.totalDebt) {
+            _amount = _cdp.totalDebt;
         }
+        
         (uint256 _withdrawnAmount, uint256 _decreasedValue) = _withdrawFundsTo(
             address(this),
-            amount_USDT.div(USDT_CONST)
+            _amount.div(USDT_CONST)
         );
         //changed to new transmuter compatibillity
- 
         _distributeToTransmuter(_withdrawnAmount);
+        
         _cdp.totalDeposited = _cdp.totalDeposited.sub(_decreasedValue.mul(USDT_CONST), "");
         _cdp.totalDebt = _cdp.totalDebt.sub(_withdrawnAmount.mul(USDT_CONST), "");
         emit TokensLiquidated(
