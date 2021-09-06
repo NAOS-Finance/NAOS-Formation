@@ -275,6 +275,10 @@ contract TransmuterV2 is Context {
     function unstake(uint256 amount) public updateAccount(msg.sender) {
         // by calling this function before transmuting you forfeit your gained allocation
         address sender = msg.sender;
+
+        // normalize amount to fit the digit of token
+        amount = amount.div(USDT_CONST).mul(USDT_CONST);
+        
         require(
             depositedNTokens[sender] >= amount,
             "Transmuter: unstake amount exceeds deposited amount"
