@@ -8,8 +8,13 @@ import { Formation } from "../../types/Formation";
 import { VaultAdapterMock } from "../../types/VaultAdapterMock";
 
 import { Erc20Mock } from "../../types/Erc20Mock";
-import { getAddress, parseEther ,parseUnits} from "ethers/lib/utils";
-import { MAXIMUM_U256, ZERO_ADDRESS, mineBlocks, DEFAULT_FLUSH_ACTIVATOR } from "../utils/helpers";
+import { getAddress, parseEther, parseUnits } from "ethers/lib/utils";
+import {
+  MAXIMUM_U256,
+  ZERO_ADDRESS,
+  mineBlocks,
+  DEFAULT_FLUSH_ACTIVATOR,
+} from "../utils/helpers";
 import { Transmuter } from "../../types/Transmuter";
 import { SSL_OP_EPHEMERAL_RSA } from "constants";
 
@@ -99,7 +104,9 @@ describe("Transmuter", () => {
     await formation.connect(governance).setTransmuter(transmuter.address);
     await formation.connect(governance).setRewards(await rewards.getAddress());
     await formation.connect(governance).setHarvestFee(harvestFee);
-    await transmuter.connect(governance).setWhitelist(mockFormationAddress, true);
+    await transmuter
+      .connect(governance)
+      .setWhitelist(mockFormationAddress, true);
 
     adapter = (await VaultAdapterMockFactory.connect(deployer).deploy(
       token.address
@@ -111,7 +118,9 @@ describe("Transmuter", () => {
     await nUsd.connect(deployer).setWhitelist(formation.address, true);
     await nUsd.connect(deployer).setCeiling(formation.address, ceilingAmt);
     await token.mint(mockFormationAddress, utils.parseEther("10000"));
-    await token.connect(mockFormation).approve(transmuter.address, MAXIMUM_U256);
+    await token
+      .connect(mockFormation)
+      .approve(transmuter.address, MAXIMUM_U256);
 
     await token.mint(await depositor.getAddress(), utils.parseEther("20000"));
     await token.mint(await minter.getAddress(), utils.parseEther("20000"));
@@ -130,7 +139,7 @@ describe("Transmuter", () => {
     await formation.connect(minter).deposit(utils.parseEther("10000"));
     await formation.connect(minter).mint(utils.parseEther("5000"));
 
-    transmuter = transmuter.connect(depositor)
+    transmuter = transmuter.connect(depositor);
 
     preTestTotalNUSDSupply = await nUsd.totalSupply();
   });
@@ -160,7 +169,6 @@ describe("Transmuter", () => {
   });
 
   describe("stake()", () => {
-
     it("stakes 1000 nUsd and reads the correct amount", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       expect(
@@ -181,15 +189,13 @@ describe("Transmuter", () => {
       expect(
         await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(utils.parseEther("1000.123456"));
-      expect(
-        await nUsd.balanceOf(await depositor.getAddress())
-      ).equal(utils.parseEther("5000").sub(utils.parseEther("1000.123456")));
+      expect(await nUsd.balanceOf(await depositor.getAddress())).equal(
+        utils.parseEther("5000").sub(utils.parseEther("1000.123456"))
+      );
     });
-
   });
 
   describe("unstake()", () => {
-
     it("reverts on depositing and then unstaking balance greater than deposit", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       expect(transmuter.unstake(utils.parseEther("2000"))).revertedWith(
@@ -212,16 +218,17 @@ describe("Transmuter", () => {
         await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(utils.parseEther("500"));
     });
-
   });
 
   describe("distributes correct amount", () => {
-    let distributeAmt = utils.parseUnits("1000",6);
+    let distributeAmt = utils.parseUnits("1000", 6);
     let stakeAmt = utils.parseEther("1000");
     let transmutationPeriod = 20;
 
     beforeEach(async () => {
-      await transmuter.connect(governance).setTransmutationPeriod(transmutationPeriod);
+      await transmuter
+        .connect(governance)
+        .setTransmutationPeriod(transmutationPeriod);
       await token.mint(await minter.getAddress(), utils.parseEther("20000"));
       await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
       await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
@@ -241,7 +248,9 @@ describe("Transmuter", () => {
     it("deposits 100000 nUSD, distributes 1000 USDT, and the correct amount of tokens are distributed to depositor", async () => {
       let numBlocks = 5;
       await transmuter.connect(depositor).stake(stakeAmt);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, numBlocks);
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       // pendingdivs should be (distributeAmt * (numBlocks / transmutationPeriod))
@@ -251,7 +260,9 @@ describe("Transmuter", () => {
     it("two people deposit equal amounts and recieve equal amounts in distribution", async () => {
       await transmuter.connect(depositor).stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let userInfo1 = await transmuter.userInfo(await depositor.getAddress());
       let userInfo2 = await transmuter.userInfo(await minter.getAddress());
@@ -263,7 +274,9 @@ describe("Transmuter", () => {
       await transmuter.connect(depositor).stake(utils.parseEther("500"));
       await transmuter.connect(minter).stake(utils.parseEther("250"));
       await transmuter.connect(rewards).stake(utils.parseEther("250"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
       let userInfo1 = await transmuter.userInfo(await depositor.getAddress());
       let userInfo2 = await transmuter.userInfo(await minter.getAddress());
@@ -274,17 +287,18 @@ describe("Transmuter", () => {
       expect(userInfo1.pendingdivs).gt(0);
       expect(sumOfTwoUsers).equal(userInfo1.pendingdivs);
     });
-
   });
 
   describe("transmute() claim() transmuteAndClaim()", () => {
-    let distributeAmt = utils.parseUnits("500",6);
+    let distributeAmt = utils.parseUnits("500", 6);
     let transmutedAmt = BigNumber.from("12400");
 
     it("transmutes the correct amount", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmute();
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.realised).equal(transmutedAmt);
@@ -293,16 +307,22 @@ describe("Transmuter", () => {
     it("burns the supply of nUSD on transmute()", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmute();
       let nUSDTokenSupply = await nUsd.totalSupply();
-      expect(nUSDTokenSupply).equal(preTestTotalNUSDSupply.sub(transmutedAmt.mul(USDT_CONST)));
+      expect(nUSDTokenSupply).equal(
+        preTestTotalNUSDSupply.sub(transmutedAmt.mul(USDT_CONST))
+      );
     });
 
     it("moves USDT from pendingdivs to inbucket upon staking more", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await transmuter.stake(utils.parseEther("100"));
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.inbucket).equal(transmutedAmt);
@@ -311,32 +331,50 @@ describe("Transmuter", () => {
     it("transmutes and claims using transmute() and then claim()", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
-      let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
+      let tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       await transmuter.transmute();
       await transmuter.claim();
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       expect(tokenBalanceAfter).equal(tokenBalanceBefore.add(transmutedAmt));
     });
 
     it("transmutes and claims using transmuteAndClaim()", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
-      let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
+      let tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       await transmuter.transmuteAndClaim();
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       expect(tokenBalanceAfter).equal(tokenBalanceBefore.add(transmutedAmt));
     });
 
     it("transmutes the full buffer if a complete phase has passed", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(governance).setTransmutationPeriod(10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 11);
-      let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      let tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       await transmuter.connect(depositor).transmuteAndClaim();
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       expect(tokenBalanceAfter).equal(tokenBalanceBefore.add(distributeAmt));
     });
 
@@ -350,10 +388,10 @@ describe("Transmuter", () => {
       // 5) USER stakes 200 USDT (to distribute allocations)
       // 6) transmute DEPOSITOR, bucket overflows by 10 USDT
       // MINTER gets 5 USDT, USER gets 5 USDT
-      let distributeAmt0 = utils.parseUnits("90",6)
-      let distributeAmt1 = utils.parseUnits("60",6)
-      let depStakeAmt0 = utils.parseEther("100")
-      let depStakeAmt1 = utils.parseEther("200")
+      let distributeAmt0 = utils.parseUnits("90", 6);
+      let distributeAmt1 = utils.parseUnits("60", 6);
+      let depStakeAmt0 = utils.parseEther("100");
+      let depStakeAmt1 = utils.parseEther("200");
       await transmuter.connect(governance).setTransmutationPeriod(10);
       await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
       await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
@@ -371,12 +409,16 @@ describe("Transmuter", () => {
 
       // user 1 deposit
       await transmuter.connect(depositor).stake(depStakeAmt0);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt0);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt0);
       await mineBlocks(ethers.provider, 10);
 
       // user 2 deposit
       await transmuter.connect(minter).stake(depStakeAmt1);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt1);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt1);
       await mineBlocks(ethers.provider, 10);
 
       await transmuter.connect(user).stake(depStakeAmt1);
@@ -388,86 +430,113 @@ describe("Transmuter", () => {
       let userInfo = await transmuter.userInfo(await user.getAddress());
 
       let minterBucketAfter = minterInfo.inbucket;
-      expect(minterBucketAfter).equal(minterBucketBefore.add(parseUnits("5",6)));
-      expect(userInfo.inbucket).equal(parseUnits("5",6));
+      expect(minterBucketAfter).equal(
+        minterBucketBefore.add(parseUnits("5", 6))
+      );
+      expect(userInfo.inbucket).equal(parseUnits("5", 6));
     });
-
   });
 
   describe("transmuteClaimAndWithdraw()", () => {
-    let distributeAmt = utils.parseUnits("500",6);
+    let distributeAmt = utils.parseUnits("500", 6);
     let transmutedAmt = BigNumber.from("6200");
     let nUsdBalanceBefore: BigNumber;
     let tokenBalanceBefore: BigNumber;
 
     beforeEach(async () => {
-      tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      nUsdBalanceBefore = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
+      tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      nUsdBalanceBefore = await nUsd
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmuteClaimAndWithdraw();
-    })
+    });
 
     it("has a staking balance of 0 nUSD after transmuteClaimAndWithdraw()", async () => {
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.depositedAl).equal(0);
-      expect(await transmuter.depositedNTokens(await depositor.getAddress())).equal(0);
+      expect(
+        await transmuter.depositedNTokens(await depositor.getAddress())
+      ).equal(0);
     });
 
     it("returns the amount of nUSD staked less the transmuted amount", async () => {
-      let nUsdBalanceAfter = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(nUsdBalanceAfter).equal(nUsdBalanceBefore.sub(transmutedAmt.mul(USDT_CONST)))
+      let nUsdBalanceAfter = await nUsd
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      expect(nUsdBalanceAfter).equal(
+        nUsdBalanceBefore.sub(transmutedAmt.mul(USDT_CONST))
+      );
     });
 
     it("burns the correct amount of transmuted nUSD using transmuteClaimAndWithdraw()", async () => {
       let nUSDTokenSupply = await nUsd.totalSupply();
-      expect(nUSDTokenSupply).equal(preTestTotalNUSDSupply.sub(transmutedAmt.mul(USDT_CONST)));
+      expect(nUSDTokenSupply).equal(
+        preTestTotalNUSDSupply.sub(transmutedAmt.mul(USDT_CONST))
+      );
     });
 
     it("successfully sends USDT to owner using transmuteClaimAndWithdraw()", async () => {
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       expect(tokenBalanceAfter).equal(tokenBalanceBefore.add(transmutedAmt));
     });
-
   });
 
   describe("exit()", () => {
-    let distributeAmt = utils.parseUnits("500",6);
+    let distributeAmt = utils.parseUnits("500", 6);
     let transmutedAmt = BigNumber.from("6200");
     let nUsdBalanceBefore: BigNumber;
     let tokenBalanceBefore: BigNumber;
 
     beforeEach(async () => {
-      tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      nUsdBalanceBefore = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
+      tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      nUsdBalanceBefore = await nUsd
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await transmuter.exit();
-    })
+    });
 
     it("transmutes and then withdraws nUSD from staking", async () => {
-      let nUsdBalanceAfter = await nUsd.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(nUsdBalanceAfter).equal(nUsdBalanceBefore.sub(transmutedAmt.mul(USDT_CONST)));
+      let nUsdBalanceAfter = await nUsd
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      expect(nUsdBalanceAfter).equal(
+        nUsdBalanceBefore.sub(transmutedAmt.mul(USDT_CONST))
+      );
     });
 
     it("transmutes and claimable USDT moves to realised value", async () => {
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       expect(userInfo.realised).equal(transmutedAmt);
-    })
+    });
 
     it("does not claim the realized tokens", async () => {
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
       expect(tokenBalanceAfter).equal(tokenBalanceBefore);
-    })
-
-  })
+    });
+  });
 
   describe("forceTransmute()", () => {
-    let distributeAmt = utils.parseUnits("5000",6);
+    let distributeAmt = utils.parseUnits("5000", 6);
 
     beforeEach(async () => {
       transmuter.connect(governance).setTransmutationPeriod(10);
@@ -483,85 +552,130 @@ describe("Transmuter", () => {
 
     it("User 'depositor' has nUSD overfilled, user 'minter' force transmutes user 'depositor' and user 'depositor' has USDT sent to his address", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("10"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
-      let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      await transmuter.connect(minter).forceTransmute(await depositor.getAddress());
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(tokenBalanceBefore).equal(tokenBalanceAfter.sub(utils.parseUnits("0.01",6)));
+      let tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      await transmuter
+        .connect(minter)
+        .forceTransmute(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      expect(tokenBalanceBefore).equal(
+        tokenBalanceAfter.sub(utils.parseUnits("0.01", 6))
+      );
     });
 
     it("User 'depositor' has nUSD overfilled, user 'minter' force transmutes user 'depositor' and user 'minter' overflow added inbucket", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("10"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
-      await transmuter.connect(minter).forceTransmute(await depositor.getAddress());
-      let userInfo = await transmuter.connect(minter).userInfo(await minter.getAddress());
+      await transmuter
+        .connect(minter)
+        .forceTransmute(await depositor.getAddress());
+      let userInfo = await transmuter
+        .connect(minter)
+        .userInfo(await minter.getAddress());
       // TODO calculate the expected value
       expect(userInfo.inbucket).equal("4999989999");
     });
 
     it("you can force transmute yourself", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("1"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
-      let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      await transmuter.connect(depositor).forceTransmute(await depositor.getAddress());
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(tokenBalanceBefore).equal(tokenBalanceAfter.sub(utils.parseUnits("0.01",6)));
+      let tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      await transmuter
+        .connect(depositor)
+        .forceTransmute(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      expect(tokenBalanceBefore).equal(
+        tokenBalanceAfter.sub(utils.parseUnits("0.01", 6))
+      );
     });
 
     it("you can force transmute yourself even when you are the only one in the transmuter", async () => {
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, distributeAmt);
       await mineBlocks(ethers.provider, 10);
-      let tokenBalanceBefore = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      await transmuter.connect(depositor).forceTransmute(await depositor.getAddress());
-      let tokenBalanceAfter = await token.connect(depositor).balanceOf(await depositor.getAddress());
-      expect(tokenBalanceBefore).equal(tokenBalanceAfter.sub(utils.parseUnits("0.01",6)));
+      let tokenBalanceBefore = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      await transmuter
+        .connect(depositor)
+        .forceTransmute(await depositor.getAddress());
+      let tokenBalanceAfter = await token
+        .connect(depositor)
+        .balanceOf(await depositor.getAddress());
+      expect(tokenBalanceBefore).equal(
+        tokenBalanceAfter.sub(utils.parseUnits("0.01", 6))
+      );
     });
 
     it("reverts when you are not overfilled", async () => {
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseUnits("1000",6));
-      expect(transmuter.connect(minter).forceTransmute(await depositor.getAddress())).revertedWith("Transmuter: !overflow");
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, utils.parseUnits("1000", 6));
+      expect(
+        transmuter.connect(minter).forceTransmute(await depositor.getAddress())
+      ).revertedWith("Transmuter: !overflow");
     });
-
   });
   //not sure what this is actually testing.... REEEE
   describe("Multiple Users displays all overfilled users", () => {
-
     it("returns userInfo", async () => {
       await transmuter.stake(utils.parseEther("1000"));
       await transmuter.connect(minter).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseUnits("5000",6));
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, utils.parseUnits("5000", 6));
       let multipleUsers = await transmuter.getMultipleUserInfo(0, 1);
       let userList = multipleUsers.theUserData;
-      expect(userList.length).equal(2)
-    })
-
-  })
+      expect(userList.length).equal(2);
+    });
+  });
 
   describe("distribute()", () => {
     let transmutationPeriod = 20;
 
     beforeEach(async () => {
-      await transmuter.connect(governance).setTransmutationPeriod(transmutationPeriod);
-    })
+      await transmuter
+        .connect(governance)
+        .setTransmutationPeriod(transmutationPeriod);
+    });
 
     it("must be whitelisted to call distribute", async () => {
       await transmuter.connect(depositor).stake(utils.parseEther("1000"));
       expect(
-        transmuter.connect(depositor).distribute(formation.address, utils.parseUnits("1000",6))
-      ).revertedWith("Transmuter: !whitelisted")
+        transmuter
+          .connect(depositor)
+          .distribute(formation.address, utils.parseUnits("1000", 6))
+      ).revertedWith("Transmuter: !whitelisted");
     });
 
     it("increases buffer size, but does not immediately increase allocations", async () => {
       await transmuter.connect(depositor).stake(utils.parseEther("1000"));
-      await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseUnits("1000",6))
+      await transmuter
+        .connect(mockFormation)
+        .distribute(mockFormationAddress, utils.parseUnits("1000", 6));
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       let bufferInfo = await transmuter.bufferInfo();
 
-      expect(bufferInfo._buffer).equal(utils.parseUnits("1000",6));
+      expect(bufferInfo._buffer).equal(utils.parseUnits("1000", 6));
       expect(bufferInfo._deltaBlocks).equal(0);
       expect(bufferInfo._toDistribute).equal(0);
       expect(userInfo.pendingdivs).equal(0);
@@ -571,16 +685,17 @@ describe("Transmuter", () => {
     });
 
     describe("userInfo()", async () => {
-
       it("distribute increases allocations if the buffer is already > 0", async () => {
         let blocksMined = 10;
         let stakeAmt = utils.parseEther("1000");
         await transmuter.connect(depositor).stake(stakeAmt);
-        await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseUnits("1000",6))
+        await transmuter
+          .connect(mockFormation)
+          .distribute(mockFormationAddress, utils.parseUnits("1000", 6));
         await mineBlocks(ethers.provider, blocksMined);
         let userInfo = await transmuter.userInfo(await depositor.getAddress());
         let bufferInfo = await transmuter.bufferInfo();
-  
+
         // 2 = transmutationPeriod / blocksMined
         expect(bufferInfo._buffer).equal(stakeAmt.div(USDT_CONST));
         expect(userInfo.pendingdivs).equal(stakeAmt.div(2).div(USDT_CONST));
@@ -588,24 +703,23 @@ describe("Transmuter", () => {
         expect(userInfo.inbucket).equal(0);
         expect(userInfo.realised).equal(0);
       });
-  
+
       it("increases buffer size, and userInfo() shows the correct state without an extra nudge", async () => {
         let stakeAmt = utils.parseEther("1000");
         await transmuter.connect(depositor).stake(stakeAmt);
-        await transmuter.connect(mockFormation).distribute(mockFormationAddress, stakeAmt.div(USDT_CONST))
+        await transmuter
+          .connect(mockFormation)
+          .distribute(mockFormationAddress, stakeAmt.div(USDT_CONST));
         await mineBlocks(ethers.provider, 10);
         let userInfo = await transmuter.userInfo(await depositor.getAddress());
         let bufferInfo = await transmuter.bufferInfo();
-  
+
         expect(bufferInfo._buffer).equal("1000000000");
         expect(userInfo.pendingdivs).equal(stakeAmt.div(2).div(USDT_CONST));
         expect(userInfo.depositedAl).equal(stakeAmt);
         expect(userInfo.inbucket).equal(0);
         expect(userInfo.realised).equal(0);
       });
-
-    })
-
+    });
   });
-
 });

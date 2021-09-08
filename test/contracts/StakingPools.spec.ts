@@ -1,17 +1,17 @@
 import chai from "chai";
 import chaiSubset from "chai-subset";
-import {solidity} from "ethereum-waffle";
-import {ethers} from "hardhat";
-import {BigNumber, BigNumberish, ContractFactory, Signer} from "ethers";
+import { solidity } from "ethereum-waffle";
+import { ethers } from "hardhat";
+import { BigNumber, BigNumberish, ContractFactory, Signer } from "ethers";
 
-import {StakingPools} from "../../types/StakingPools";
-import {Erc20Mock} from "../../types/Erc20Mock";
-import {MAXIMUM_U256, mineBlocks, ZERO_ADDRESS} from "../utils/helpers";
+import { StakingPools } from "../../types/StakingPools";
+import { Erc20Mock } from "../../types/Erc20Mock";
+import { MAXIMUM_U256, mineBlocks, ZERO_ADDRESS } from "../utils/helpers";
 
 chai.use(solidity);
 chai.use(chaiSubset);
 
-const {expect} = chai;
+const { expect } = chai;
 
 let StakingPoolsFactory: ContractFactory;
 let ERC20MockFactory: ContractFactory;
@@ -32,7 +32,12 @@ describe("StakingPools", () => {
   });
 
   beforeEach(async () => {
-    [deployer, governance, newGovernance, ...signers] = await ethers.getSigners();
+    [
+      deployer,
+      governance,
+      newGovernance,
+      ...signers
+    ] = await ethers.getSigners();
 
     reward = (await ERC20MockFactory.connect(deployer).deploy(
       "Test Token",
@@ -51,7 +56,7 @@ describe("StakingPools", () => {
       expect(
         StakingPoolsFactory.connect(deployer).deploy(
           ZERO_ADDRESS,
-          await governance.getAddress(),
+          await governance.getAddress()
         )
       ).revertedWith("StakingPools: reward address cannot be 0x0");
     });
@@ -59,9 +64,9 @@ describe("StakingPools", () => {
 
   describe("set governance", () => {
     it("only allows governance", async () => {
-      expect(pools.setPendingGovernance(await newGovernance.getAddress())).revertedWith(
-        "StakingPools: only governance"
-      );
+      expect(
+        pools.setPendingGovernance(await newGovernance.getAddress())
+      ).revertedWith("StakingPools: only governance");
     });
 
     context("when caller is governance", () => {
@@ -82,8 +87,10 @@ describe("StakingPools", () => {
 
       it("updates governance upon acceptance", async () => {
         await pools.setPendingGovernance(await newGovernance.getAddress());
-        await pools.connect(newGovernance).acceptGovernance()
-        expect(await pools.governance()).equal(await newGovernance.getAddress());
+        await pools.connect(newGovernance).acceptGovernance();
+        expect(await pools.governance()).equal(
+          await newGovernance.getAddress()
+        );
       });
 
       it("emits GovernanceUpdated event", async () => {
@@ -155,7 +162,9 @@ describe("StakingPools", () => {
       context("when reusing token", async () => {
         it("reverts", async () => {
           await pools.createPool(token.address);
-          expect(pools.createPool(token.address)).revertedWith("StakingPools: token already has a pool");
+          expect(pools.createPool(token.address)).revertedWith(
+            "StakingPools: token already has a pool"
+          );
         });
       });
     });
@@ -188,7 +197,9 @@ describe("StakingPools", () => {
 
         it("updates the reward weights", async () => {
           for (let poolId = 0; poolId < rewardWeights.length; poolId++) {
-            expect(await pools.getPoolRewardWeight(poolId)).equal(rewardWeights[poolId]);
+            expect(await pools.getPoolRewardWeight(poolId)).equal(
+              rewardWeights[poolId]
+            );
           }
         });
       };
@@ -236,19 +247,11 @@ describe("StakingPools", () => {
 
         beforeEach(async () => {
           for (let n = 0; n < numberPools; n++) {
-            await pools
-              .connect(governance)
-              .createPool(tokens[n].address);
+            await pools.connect(governance).createPool(tokens[n].address);
           }
         });
 
-        shouldBehaveLikeSetRewardWeights([
-          10000,
-          20000,
-          30000,
-          40000,
-          50000,
-        ]);
+        shouldBehaveLikeSetRewardWeights([10000, 20000, 30000, 40000, 50000]);
       });
     });
   });
@@ -277,27 +280,35 @@ describe("StakingPools", () => {
       let startingDeposited: BigNumber;
 
       beforeEach(async () => {
-        startingTokenBalance = await token.balanceOf(await depositor.getAddress());
+        startingTokenBalance = await token.balanceOf(
+          await depositor.getAddress()
+        );
         startingTotalDeposited = await pools.getPoolTotalDeposited(0);
-        startingDeposited = await pools.getStakeTotalDeposited(await depositor.getAddress(), 0);
+        startingDeposited = await pools.getStakeTotalDeposited(
+          await depositor.getAddress(),
+          0
+        );
 
         await token.approve(pools.address, amount);
         await pools.deposit(poolId, amount);
       });
 
       it("increments total deposited amount", async () => {
-        expect(await pools.getPoolTotalDeposited(0))
-          .equal(startingTotalDeposited.add(amount));
+        expect(await pools.getPoolTotalDeposited(0)).equal(
+          startingTotalDeposited.add(amount)
+        );
       });
 
       it("increments deposited amount", async () => {
-        expect(await pools.getStakeTotalDeposited(await depositor.getAddress(), 0))
-          .equal(startingDeposited.add(amount));
+        expect(
+          await pools.getStakeTotalDeposited(await depositor.getAddress(), 0)
+        ).equal(startingDeposited.add(amount));
       });
 
       it("transfers deposited tokens", async () => {
-        expect(await token.balanceOf(await depositor.getAddress()))
-          .equal(startingTokenBalance.sub(amount));
+        expect(await token.balanceOf(await depositor.getAddress())).equal(
+          startingTokenBalance.sub(amount)
+        );
       });
     };
 
@@ -314,8 +325,9 @@ describe("StakingPools", () => {
       shouldBehaveLikeDeposit(0, depositAmount);
 
       it("does not reward tokens", async () => {
-        expect(await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0))
-          .equal(0);
+        expect(
+          await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)
+        ).equal(0);
       });
     });
 
@@ -364,9 +376,14 @@ describe("StakingPools", () => {
       let startingDeposited: BigNumber;
 
       beforeEach(async () => {
-        startingTokenBalance = await token.balanceOf(await depositor.getAddress());
+        startingTokenBalance = await token.balanceOf(
+          await depositor.getAddress()
+        );
         startingTotalDeposited = await pools.getPoolTotalDeposited(0);
-        startingDeposited = await pools.getStakeTotalDeposited(await depositor.getAddress(), 0);
+        startingDeposited = await pools.getStakeTotalDeposited(
+          await depositor.getAddress(),
+          0
+        );
       });
 
       beforeEach(async () => {
@@ -374,13 +391,15 @@ describe("StakingPools", () => {
       });
 
       it("decrements total deposited amount", async () => {
-        expect(await pools.getPoolTotalDeposited(0))
-          .equal(startingTotalDeposited.sub(amount));
+        expect(await pools.getPoolTotalDeposited(0)).equal(
+          startingTotalDeposited.sub(amount)
+        );
       });
 
       it("decrements deposited amount", async () => {
-        expect(await pools.getStakeTotalDeposited(await depositor.getAddress(), 0))
-          .equal(startingDeposited.sub(amount));
+        expect(
+          await pools.getStakeTotalDeposited(await depositor.getAddress(), 0)
+        ).equal(startingDeposited.sub(amount));
       });
 
       it("transfers deposited tokens", async () => {
@@ -395,17 +414,19 @@ describe("StakingPools", () => {
       let withdrawAmount = 25000;
 
       beforeEach(async () => {
-        token = token.connect(depositor)
-        await token.connect(deployer).mint(await depositor.getAddress(), MAXIMUM_U256);
+        token = token.connect(depositor);
+        await token
+          .connect(deployer)
+          .mint(await depositor.getAddress(), MAXIMUM_U256);
         await token.connect(depositor).approve(pools.address, MAXIMUM_U256);
         await token.mint(await depositor.getAddress(), depositAmount);
         await token.approve(pools.address, depositAmount);
 
-        pools = pools.connect(depositor)
+        pools = pools.connect(depositor);
         await pools.deposit(0, depositAmount);
       });
 
-      shouldBehaveLikeWithdraw(0, withdrawAmount)
+      shouldBehaveLikeWithdraw(0, withdrawAmount);
     });
   });
 
@@ -448,7 +469,7 @@ describe("StakingPools", () => {
 
       beforeEach(async () => {
         await pools.connect(governance).setRewardRate(rewardRate);
-        pools = pools.connect(depositor)
+        pools = pools.connect(depositor);
         await pools.deposit(0, depositAmount);
         await mineBlocks(ethers.provider, elapsedBlocks);
         await pools.claim(0);
@@ -463,7 +484,9 @@ describe("StakingPools", () => {
       });
 
       it("clears unclaimed amount", async () => {
-        expect(await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)).equal(0);
+        expect(
+          await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)
+        ).equal(0);
       });
     });
 
@@ -474,7 +497,7 @@ describe("StakingPools", () => {
 
       beforeEach(async () => {
         await pools.connect(governance).setRewardRate(rewardRate);
-        pools = pools.connect(depositor)
+        pools = pools.connect(depositor);
         await pools.deposit(0, depositAmount);
         await mineBlocks(ethers.provider, elapsedBlocks);
         await pools.deposit(0, depositAmount);
@@ -491,7 +514,9 @@ describe("StakingPools", () => {
       });
 
       it("clears unclaimed amount", async () => {
-        expect(await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)).equal(0);
+        expect(
+          await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)
+        ).equal(0);
       });
     });
   });
@@ -545,7 +570,9 @@ describe("StakingPools", () => {
       it("properly calculates the balance", async () => {
         const rewardAmount = rewardRate * elapsedBlocks;
 
-        expect(await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)).equal(rewardAmount);
+        expect(
+          await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)
+        ).equal(rewardAmount);
       });
     });
 
@@ -566,7 +593,9 @@ describe("StakingPools", () => {
       it("properly calculates the balance", async () => {
         const rewardAmount = rewardRate * (elapsedBlocks + elapsedBlocks + 1);
 
-        expect(await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0))
+        expect(
+          await pools.getStakeTotalUnclaimed(await depositor.getAddress(), 0)
+        )
           .gte(rewardAmount - EPSILON)
           .lte(rewardAmount);
       });

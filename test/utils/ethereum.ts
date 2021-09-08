@@ -1,10 +1,10 @@
 "use strict";
 
-import BigNum from 'bignumber.js';
+import BigNum from "bignumber.js";
 import { ethers } from "hardhat";
 
 export function address(n) {
-  return `0x${n.toString(16).padStart(40, '0')}`;
+  return `0x${n.toString(16).padStart(40, "0")}`;
 }
 
 export function encodeParameters(types, values) {
@@ -23,8 +23,12 @@ export function encodeParameters(types, values) {
 //   return ethers.BigNumber.from(gasUsed.times(gasPrice).toFixed());
 // }
 
-export function etherExp(num) { return etherMantissa(num, 1e18) }
-export function etherDouble(num) { return etherMantissa(num, 1e36) }
+export function etherExp(num) {
+  return etherMantissa(num, 1e18);
+}
+export function etherDouble(num) {
+  return etherMantissa(num, 1e36);
+}
 export function etherMantissa(num, scale = 1e18) {
   if (num < 0)
     return ethers.BigNumber.from(new BigNum(2).pow(256).plus(num).toFixed());
@@ -36,17 +40,19 @@ export function etherUnsigned(num) {
 }
 
 export function mergeInterface(into, from) {
-  const key = (item) => item.inputs ? `${item.name}/${item.inputs.length}` : item.name;
+  const key = (item) =>
+    item.inputs ? `${item.name}/${item.inputs.length}` : item.name;
   const existing = into.options.jsonInterface.reduce((acc, item) => {
     acc[key(item)] = true;
     return acc;
   }, {});
   const extended = from.options.jsonInterface.reduce((acc, item) => {
-    if (!(key(item) in existing))
-      acc.push(item)
+    if (!(key(item) in existing)) acc.push(item);
     return acc;
   }, into.options.jsonInterface.slice());
-  into.options.jsonInterface = into.options.jsonInterface.concat(from.options.jsonInterface);
+  into.options.jsonInterface = into.options.jsonInterface.concat(
+    from.options.jsonInterface
+  );
   return into;
 }
 
@@ -123,4 +129,3 @@ export function keccak256(values) {
 //   const receipt = await web3.eth.sendTransaction({ to: contract._address, ...Object.assign(getContractDefaults(), opts) });
 //   return Object.assign(receipt, { events: receipt.logs });
 // }
-
