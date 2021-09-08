@@ -52,7 +52,7 @@ describe("TransmuterUSDV2", () => {
     TransmuterV2Factory = await ethers.getContractFactory("TransmuterV2");
     ERC20MockFactory = await ethers.getContractFactory("ERC20Mock");
     NUSDFactory = await ethers.getContractFactory("NToken");
-    FormationFactory = await ethers.getContractFactory("Formation");
+    FormationFactory = await ethers.getContractFactory("FormationUSD");
     VaultAdapterMockFactory = await ethers.getContractFactory(
       "VaultAdapterMockWithIndirection"
     );
@@ -122,7 +122,7 @@ describe("TransmuterUSDV2", () => {
       .setCollateralizationLimit(collateralizationLimit);
     await nUsd.connect(deployer).setWhitelist(formation.address, true);
     await nUsd.connect(deployer).setCeiling(formation.address, ceilingAmt);
-    await token.mint(mockFormationAddress, utils.parseEther("10000"));
+    await token.mint(mockFormationAddress, utils.parseUnits("10000", 6));
     await token.connect(mockFormation).approve(transmuter.address, MAXIMUM_U256);
 
     await token.mint(await depositor.getAddress(), utils.parseEther("20000"));
@@ -185,9 +185,9 @@ describe("TransmuterUSDV2", () => {
       );
     });
 
-    it("deposits and unstakes 1000 nUSD", async () => {
-      await transmuter.stake(utils.parseEther("1000"));
-      await transmuter.unstake(utils.parseEther("1000"));
+    it("deposits 1000.123456789 and unstakes 1000.123456 nUSD", async () => {
+      await transmuter.stake(utils.parseEther("1000.123456789"));
+      await transmuter.unstake(utils.parseEther("1000.123456"));
       expect(
         await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(0);
@@ -201,6 +201,13 @@ describe("TransmuterUSDV2", () => {
       ).equal(utils.parseEther("500"));
     });
 
+    it("reverts on depositing and then unstaking balance with extra deciaml", async () => {
+      await transmuter.stake(utils.parseEther("1000.123456789"));
+      expect(transmuter.unstake(utils.parseEther("1000.1234561"))).revertedWith(
+        "Transmuter: unstake amount exceeds deposited amount"
+      );
+    });
+
   });
 
   describe("distributes correct amount", () => {
@@ -210,19 +217,19 @@ describe("TransmuterUSDV2", () => {
 
     beforeEach(async () => {
       await transmuter.connect(governance).setTransmutationPeriod(transmutationPeriod);
-      await token.mint(await minter.getAddress(), utils.parseEther("20000"));
+      await token.mint(await minter.getAddress(), utils.parseUnits("20000", 6));
       await token.connect(minter).approve(transmuter.address, MAXIMUM_U256);
       await nUsd.connect(minter).approve(transmuter.address, MAXIMUM_U256);
       await token.connect(minter).approve(formation.address, MAXIMUM_U256);
       await nUsd.connect(minter).approve(formation.address, MAXIMUM_U256);
-      await formation.connect(minter).deposit(utils.parseEther("10000"));
+      await formation.connect(minter).deposit(utils.parseUnits("10000", 6));
       await formation.connect(minter).mint(utils.parseEther("5000"));
-      await token.mint(await rewards.getAddress(), utils.parseEther("20000"));
+      await token.mint(await rewards.getAddress(), utils.parseUnits("20000", 6));
       await token.connect(rewards).approve(transmuter.address, MAXIMUM_U256);
       await nUsd.connect(rewards).approve(transmuter.address, MAXIMUM_U256);
       await token.connect(rewards).approve(formation.address, MAXIMUM_U256);
       await nUsd.connect(rewards).approve(formation.address, MAXIMUM_U256);
-      await formation.connect(rewards).deposit(utils.parseEther("10000"));
+      await formation.connect(rewards).deposit(utils.parseUnits("10000", 6));
       await formation.connect(rewards).mint(utils.parseEther("5000"));
     });
 
@@ -243,7 +250,7 @@ describe("TransmuterUSDV2", () => {
       await mineBlocks(ethers.provider, 10);
       let userInfo1 = await transmuter.userInfo(await depositor.getAddress());
       let userInfo2 = await transmuter.userInfo(await minter.getAddress());
-      expect(userInfo1.pendingdivs).gt(0);
+      expect(userInfo1.pendingdivs).equal(distributeAmt.div(4));
       expect(userInfo1.pendingdivs).equal(userInfo2.pendingdivs);
     });
 
@@ -259,7 +266,7 @@ describe("TransmuterUSDV2", () => {
       let user2: BigNumber = userInfo2.pendingdivs;
       let user3: BigNumber = userInfo3.pendingdivs;
       let sumOfTwoUsers = user2.add(user3);
-      expect(userInfo1.pendingdivs).gt(0);
+      expect(userInfo1.pendingdivs).equal(distributeAmt.div(4));
       expect(sumOfTwoUsers).equal(userInfo1.pendingdivs);
     });
 
@@ -284,10 +291,12 @@ describe("TransmuterUSDV2", () => {
       await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
       await transmuter.transmute();
       let nUSDTokenSupply = await nUsd.totalSupply();
+      expect(await transmuter.depositedNTokens(await depositor.getAddress())).equal(utils.parseEther("1000").sub(transmutedAmt.mul(USDT_CONST)));
       expect(nUSDTokenSupply).equal(preTestTotalNUSDSupply.sub(transmutedAmt.mul(USDT_CONST)));
     });
 
     it("moves USDT from pendingdivs to inbucket upon staking more", async () => {
+      //??
       await transmuter.stake(utils.parseEther("1000"));
       await mineBlocks(ethers.provider, 10);
       await transmuter.connect(mockFormation).distribute(mockFormationAddress, distributeAmt);
@@ -627,7 +636,6 @@ describe("TransmuterUSDV2", () => {
       await transmuter.connect(mockFormation).distribute(mockFormationAddress, utils.parseUnits("1000",6));
       let userInfo = await transmuter.userInfo(await depositor.getAddress());
       let bufferInfo = await transmuter.bufferInfo();
-
       expect(bufferInfo._buffer).equal(utils.parseUnits("1000",6));
       expect(bufferInfo._deltaBlocks).equal(0);
       expect(bufferInfo._toDistribute).equal(0);
@@ -647,7 +655,6 @@ describe("TransmuterUSDV2", () => {
         await mineBlocks(ethers.provider, blocksMined);
         let userInfo = await transmuter.userInfo(await depositor.getAddress());
         let bufferInfo = await transmuter.bufferInfo();
-  
         // 2 = transmutationPeriod / blocksMined
         expect(bufferInfo._buffer).equal(stakeAmt.div(USDT_CONST));
         expect(userInfo.pendingdivs).equal(stakeAmt.div(2).div(USDT_CONST));

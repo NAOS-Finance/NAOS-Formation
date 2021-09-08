@@ -33,7 +33,7 @@ let YearnControllerMockFactory: ContractFactory;
 
 var USDT_CONST = 1000000000000;
 
-describe("Formation", () => {
+describe("FormationUSD", () => {
   let signers: Signer[];
 
   before(async () => {
@@ -497,7 +497,7 @@ describe("Formation", () => {
         let controllerMock: YearnControllerMock;
         let vaultMock: YearnVaultMockUsd;
         let depositAmt = parseUnits("5000",6);
-        let mintAmt = parseEther("1000");
+        let mintAmt = parseEther("2500");
         let recallAmt = parseUnits("500",6);
 
         beforeEach(async () => {
@@ -539,14 +539,14 @@ describe("Formation", () => {
         let inactiveAdapter: YearnVaultAdapter;
         let activeAdapter: YearnVaultAdapter;
         let depositAmt = parseUnits("5000",6);
-        let mintAmt = parseEther("1000");
+        let mintAmt = parseEther("2500");
         let recallAmt = parseUnits("500",6);
 
         beforeEach(async () => {
           controllerMock = await YearnControllerMockFactory
           .connect(deployer)
           .deploy() as YearnControllerMock;
-        vaultMock = await YearnVaultMockUsdFactory
+          vaultMock = await YearnVaultMockUsdFactory
           .connect(deployer)
           .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
 
@@ -559,9 +559,9 @@ describe("Formation", () => {
           .deploy(vaultMock.address, formation.address) as YearnVaultAdapter;
 
           await formation.connect(governance).initialize(inactiveAdapter.address);
-          await token.mint(await minter.getAddress(), depositAmt.mul(USDT_CONST));
+          await token.mint(await minter.getAddress(), depositAmt);
           await token.mint(await deployer.getAddress(), parseEther("10000"));
-          await token.connect(minter).approve(formation.address, depositAmt.mul(USDT_CONST));
+          await token.connect(minter).approve(formation.address, depositAmt);
           await token.approve(vaultMock.address, parseEther("10000"));
           await formation.connect(minter).deposit(depositAmt);
           await formation.connect(minter).flush();
@@ -624,7 +624,7 @@ describe("Formation", () => {
           .connect(deployer)
           .deploy() as YearnControllerMock;
 
-        activevaultMock = await YearnVaultMockUsdFactory
+          activevaultMock = await YearnVaultMockUsdFactory
           .connect(deployer)
           .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
 
@@ -658,7 +658,7 @@ describe("Formation", () => {
 
     describe("deposit and withdraw tokens", () => {
       let depositAmt = parseUnits("5000",6);
-      let mintAmt = parseEther("1000");
+      let mintAmt = parseEther("2500");
       let ceilingAmt = parseEther("10000");
       let collateralizationLimit = "2000000000000000000"; // this should be set in the deploy sequence
       let repayAmtUSD = mintAmt.div(USDT_CONST);
@@ -678,7 +678,7 @@ describe("Formation", () => {
           .setCollateralizationLimit(collateralizationLimit);
         await nUsd.connect(deployer).setWhitelist(formation.address, true);
         await nUsd.connect(deployer).setCeiling(formation.address, ceilingAmt);
-        await token.mint(await minter.getAddress(), parseEther("5000"));
+        await token.mint(await minter.getAddress(), parseUnits("5000", 6));
         await token.connect(minter).approve(formation.address, parseEther("100000000"));
         await nUsd.connect(minter).approve(formation.address, parseEther("100000000"));
       });
@@ -717,6 +717,17 @@ describe("Formation", () => {
         expect(balBefore).equal(balAfter);
        });
 
+      it("revert with withdraw too much tokens after repay with nUSD", async () => {
+        let balBefore = await token.balanceOf(await minter.getAddress());
+        await formation.connect(minter).deposit(depositAmt);
+        await token.mint(await deployer.getAddress(), depositAmt);
+        await token.connect(deployer).approve(formation.address, parseEther("100000000"));
+        await formation.connect(deployer).deposit(depositAmt);
+        await formation.connect(minter).mint(mintAmt);
+        await formation.connect(minter).repay(0, mintAmt);
+        expect(formation.connect(minter).withdraw(depositAmt.add(parseUnits("1",1)))).revertedWith("Exceeds withdrawable amount");
+      });
+
       it("deposits, mints, repays with USDT, and withdraws", async () => {
         let balBefore = await token.balanceOf(await minter.getAddress());
         await formation.connect(minter).deposit(depositAmt);
@@ -727,13 +738,35 @@ describe("Formation", () => {
         expect(balBefore).equal(balAfter.add(repayAmtUSD));
       });
 
+      it("revert with repay too much USDT", async () => {
+        let balBefore = await token.balanceOf(await minter.getAddress());
+        await formation.connect(minter).deposit(depositAmt);
+        await token.mint(await deployer.getAddress(), depositAmt);
+        await token.connect(deployer).approve(formation.address, parseEther("100000000"));
+        await formation.connect(deployer).deposit(depositAmt);
+        await formation.connect(minter).mint(mintAmt);
+        expect(formation.connect(minter).repay(repayAmtUSD.add(parseUnits("1",1)), 0)).revertedWith("");
+      });
+
+      it("revert with withdraw too much tokens after repay with USDT", async () => {
+        let balBefore = await token.balanceOf(await minter.getAddress());
+        await formation.connect(minter).deposit(depositAmt);
+        await token.mint(await deployer.getAddress(), depositAmt);
+        await token.connect(deployer).approve(formation.address, parseEther("100000000"));
+        await formation.connect(deployer).deposit(depositAmt);
+        await formation.connect(minter).mint(mintAmt);
+        await formation.connect(minter).repay(repayAmtUSD, 0);
+        expect(formation.connect(minter).withdraw(depositAmt.add(parseUnits("1",1)))).revertedWith("Exceeds withdrawable amount");
+      });
+
       it("deposits 5000 USDT, mints 1000 nUSD, and withdraws 3000 USDT", async () => {
+        mintAmt = parseEther("1000");
         let withdrawAmt = depositAmt.sub(mintAmt.div(USDT_CONST).mul(2));
         await formation.connect(minter).deposit(depositAmt);
         await formation.connect(minter).mint(mintAmt);
         await formation.connect(minter).withdraw(withdrawAmt);
         expect(await token.balanceOf(await minter.getAddress())).equal(
-          parseEther("10000").add(parseEther("5000")).sub(parseUnits("5000",6)).add(parseUnits("3000",6))
+          parseEther("10000").add(parseUnits("3000",6))
         );
       });
 
@@ -765,7 +798,7 @@ describe("Formation", () => {
 
     describe("repay and liquidate tokens", () => {
       let depositAmt = parseUnits("5000",6);
-      let mintAmt = parseEther("1000");
+      let mintAmt = parseEther("2500");
       let ceilingAmt = parseEther("10000");
       let collateralizationLimit = "2000000000000000000"; // this should be set in the deploy sequence
       let repayAmtUSD = mintAmt.div(USDT_CONST);
@@ -806,6 +839,7 @@ describe("Formation", () => {
       })
       it("liquidates funds from vault if not enough in the buffer", async () => {
         let liqAmt = parseUnits("600",18);
+        mintAmt = parseEther("1000");
         await formation.connect(minter).deposit(depositAmt);
         await formation.connect(governance).flush();
         await formation.connect(minter).deposit(mintAmt.div(USDT_CONST).div(2));
@@ -835,6 +869,8 @@ describe("Formation", () => {
         expect(transmuterEndingTokenBal).equal(liqAmt.div(USDT_CONST));
       })
       it("deposits, mints nUsd, repays, and has no outstanding debt", async () => {
+        mintAmt = parseEther("1000");
+        repayAmtUSD = mintAmt.div(USDT_CONST)
         await formation.connect(minter).deposit(depositAmt.sub(parseUnits("1000",6)));
         await formation.connect(minter).mint(mintAmt);
         await transmuterContract.connect(minter).stake(mintAmt);
@@ -852,6 +888,7 @@ describe("Formation", () => {
         ).equal(0);
       });
       it("deposits, mints nUsd, repays with nUsd and USDT, and has no outstanding debt", async () => {
+        mintAmt = parseEther("1000");
         await formation.connect(minter).deposit(depositAmt.sub(parseUnits("1000",6)));
         await formation.connect(minter).mint(mintAmt);
         await transmuterContract.connect(minter).stake(parseEther("500"));
@@ -870,7 +907,7 @@ describe("Formation", () => {
 
     describe("mint", () => {
       let depositAmt = parseUnits("5000",6);
-      let mintAmt = parseEther("1000");
+      let mintAmt = parseEther("2500");
       let ceilingAmt = parseEther("1000");
 
       beforeEach(async () => {
@@ -887,8 +924,8 @@ describe("Formation", () => {
         await formation.connect(governance).initialize(adapter.address);
 
         await nUsd.connect(deployer).setCeiling(formation.address, ceilingAmt);
-        await token.mint(await minter.getAddress(), depositAmt.mul(USDT_CONST));
-        await token.connect(minter).approve(formation.address, depositAmt.mul(USDT_CONST));
+        await token.mint(await minter.getAddress(), depositAmt);
+        await token.connect(minter).approve(formation.address, depositAmt);
       });
 
       it("reverts if the Formation is not whitelisted", async () => {
@@ -913,7 +950,9 @@ describe("Formation", () => {
         });
 
         it("reverts when trying to mint too much", async () => {
-          expect(formation.connect(minter).mint(parseEther("2000"))).revertedWith(
+          await formation.connect(minter).deposit(depositAmt);
+          await nUsd.connect(deployer).setCeiling(formation.address, parseEther("5000"));
+          expect(formation.connect(minter).mint(parseEther("2500").add(parseUnits("1",1)))).revertedWith(
             "Loan-to-value ratio breached"
           );
         });
@@ -931,6 +970,7 @@ describe("Formation", () => {
 
         it("mints successfully to depositor", async () => {
           let balBefore = await token.balanceOf(await minter.getAddress());
+          await nUsd.connect(deployer).setCeiling(formation.address, mintAmt);
           await formation.connect(minter).deposit(depositAmt);
           await formation.connect(minter).mint(mintAmt);
           let balAfter = await token.balanceOf(await minter.getAddress());
@@ -945,7 +985,7 @@ describe("Formation", () => {
 
     describe("harvest", () => {
       let depositAmt = parseUnits("5000",6);
-      let mintAmt = parseEther("1000");
+      let mintAmt = parseEther("2500");
       let stakeAmt = mintAmt.div(2);
       let ceilingAmt = parseEther("10000");
       let yieldAmt = parseUnits("100",6);
@@ -964,8 +1004,8 @@ describe("Formation", () => {
         await nUsd.connect(deployer).setWhitelist(formation.address, true);
         await formation.connect(governance).initialize(adapter.address);
         await nUsd.connect(deployer).setCeiling(formation.address, ceilingAmt);
-        await token.mint(await user.getAddress(), depositAmt.mul(USDT_CONST));
-        await token.connect(user).approve(formation.address, depositAmt.mul(USDT_CONST));
+        await token.mint(await user.getAddress(), depositAmt);
+        await token.connect(user).approve(formation.address, depositAmt);
         await nUsd.connect(user).approve(transmuterContract.address, depositAmt.mul(USDT_CONST));
         await formation.connect(user).deposit(depositAmt);
         await formation.connect(user).mint(mintAmt);
@@ -981,7 +1021,7 @@ describe("Formation", () => {
         expect(transmuterBal.sub(yieldAmt.sub(yieldAmt.div(pctReso/harvestFee)))).to.be.at.most(1);
         let vaultBal = await token.balanceOf(vaultMock.address);
         //expect(vaultBal).equal(depositAmt.mul(USDT_CONST));
-        expect(vaultBal.sub(depositAmt.mul(USDT_CONST))).to.be.at.most(1);
+        expect(vaultBal.sub(depositAmt)).to.be.at.most(1);
       })
 
       it("sends the harvest fee to the rewards address", async () => {
