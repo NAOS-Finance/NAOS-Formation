@@ -16,7 +16,7 @@ import {IChainlink} from "./interfaces/IChainlink.sol";
 import {IVaultAdapter} from "./interfaces/IVaultAdapter.sol";
 import {Vault} from "./libraries/formation/Vault.sol";
 
-import "hardhat/console.sol";
+
                                                                                               
 contract Formation is  ReentrancyGuard {
   using CDP for CDP.Data;
