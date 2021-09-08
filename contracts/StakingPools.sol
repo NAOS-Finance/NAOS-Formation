@@ -13,7 +13,7 @@ import {Pool} from "./libraries/pools/Pool.sol";
 import {Stake} from "./libraries/pools/Stake.sol";
 import {StakingPools} from "./StakingPools.sol";
 
-import "hardhat/console.sol";
+
 
 /// @title StakingPools
 /// @dev A contract which allows users to stake to farm tokens.

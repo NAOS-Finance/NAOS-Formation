@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IERC20Burnable.sol";
-import "hardhat/console.sol";
+
 
 contract Transmuter is Context {
     using SafeMath for uint256;
