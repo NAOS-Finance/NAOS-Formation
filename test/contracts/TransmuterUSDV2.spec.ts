@@ -200,14 +200,6 @@ describe("TransmuterUSDV2", () => {
         await transmuter.depositedNTokens(await depositor.getAddress())
       ).equal(utils.parseEther("500"));
     });
-
-    it("reverts on depositing and then unstaking balance with extra deciaml", async () => {
-      await transmuter.stake(utils.parseEther("1000.123456789"));
-      expect(transmuter.unstake(utils.parseEther("1000.1234561"))).revertedWith(
-        "Transmuter: unstake amount exceeds deposited amount"
-      );
-    });
-
   });
 
   describe("distributes correct amount", () => {
