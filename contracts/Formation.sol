@@ -572,9 +572,6 @@ contract Formation is  ReentrancyGuard {
     }
 
     xtoken.mint(msg.sender, _amount);
-    if(_amount >= flushActivator) {
-      flushActiveVault();
-    }
   }
 
   /// @dev Gets the number of vaults in the vault list.
