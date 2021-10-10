@@ -21,13 +21,10 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./MultiSigWallet.sol";
 
-
 /// @title Multisignature wallet with time lock- Allows multiple parties to execute a transaction after a time lock has passed.
 /// @author Amir Bandeali - <amir@0xProject.com>
 // solhint-disable not-rely-on-time
-contract MultiSigWalletWithTimeLock is
-    MultiSigWallet
-{
+contract MultiSigWalletWithTimeLock is MultiSigWallet {
     using SafeMath for uint256;
 
     event ConfirmationTimeSet(uint256 indexed transactionId, uint256 confirmationTime);
@@ -35,21 +32,15 @@ contract MultiSigWalletWithTimeLock is
 
     uint256 public secondsTimeLocked;
 
-    mapping (uint256 => uint256) public confirmationTimes;
+    mapping(uint256 => uint256) public confirmationTimes;
 
     modifier fullyConfirmed(uint256 transactionId) {
-        require(
-            isConfirmed(transactionId),
-            "TX_NOT_FULLY_CONFIRMED"
-        );
+        require(isConfirmed(transactionId), "TX_NOT_FULLY_CONFIRMED");
         _;
     }
 
     modifier pastTimeLock(uint256 transactionId) {
-        require(
-            block.timestamp >= confirmationTimes[transactionId].add(secondsTimeLocked),
-            "TIME_LOCK_INCOMPLETE"
-        );
+        require(block.timestamp >= confirmationTimes[transactionId].add(secondsTimeLocked), "TIME_LOCK_INCOMPLETE");
         _;
     }
 
@@ -57,23 +48,17 @@ contract MultiSigWalletWithTimeLock is
     /// @param _owners List of initial owners.
     /// @param _required Number of required confirmations.
     /// @param _secondsTimeLocked Duration needed after a transaction is confirmed and before it becomes executable, in seconds.
-    constructor (
+    constructor(
         address[] memory _owners,
         uint256 _required,
         uint256 _secondsTimeLocked
-    )
-        public
-        MultiSigWallet(_owners, _required)
-    {
+    ) public MultiSigWallet(_owners, _required) {
         secondsTimeLocked = _secondsTimeLocked;
     }
 
     /// @dev Changes the duration of the time lock for transactions.
     /// @param _secondsTimeLocked Duration needed after a transaction is confirmed and before it becomes executable, in seconds.
-    function changeTimeLock(uint256 _secondsTimeLocked)
-        public
-        onlyWallet
-    {
+    function changeTimeLock(uint256 _secondsTimeLocked) public onlyWallet {
         secondsTimeLocked = _secondsTimeLocked;
         emit TimeLockChange(_secondsTimeLocked);
     }
@@ -117,9 +102,7 @@ contract MultiSigWalletWithTimeLock is
     }
 
     /// @dev Sets the time of when a submission first passed.
-    function _setConfirmationTime(uint256 transactionId, uint256 confirmationTime)
-        internal
-    {
+    function _setConfirmationTime(uint256 transactionId, uint256 confirmationTime) internal {
         confirmationTimes[transactionId] = confirmationTime;
         emit ConfirmationTimeSet(transactionId, confirmationTime);
     }

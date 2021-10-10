@@ -16,8 +16,6 @@ import {IChainlink} from "./interfaces/IChainlink.sol";
 import {IVaultAdapter} from "./interfaces/IVaultAdapter.sol";
 import {Vault} from "./libraries/formation/Vault.sol";
 
-
-
 contract FormationUSD is ReentrancyGuard {
     using CDP for CDP.Data;
     using FixedPointMath for FixedPointMath.uq192x64;
@@ -40,8 +38,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// IMPORTANT: This constant is a raw FixedPointMath.uq192x64 value and assumes a resolution of 64 bits. If the
     ///            resolution for the FixedPointMath library changes this constant must change as well.
-    uint256 public constant MINIMUM_COLLATERALIZATION_LIMIT =
-        1000000000000000000;
+    uint256 public constant MINIMUM_COLLATERALIZATION_LIMIT = 1000000000000000000;
 
     /// @dev The maximum value that the collateralization limit can be set to by the governance. This is a safety rail
     /// to prevent the collateralization from being set to a value which breaks the system.
@@ -50,8 +47,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// IMPORTANT: This constant is a raw FixedPointMath.uq192x64 value and assumes a resolution of 64 bits. If the
     ///            resolution for the FixedPointMath library changes this constant must change as well.
-    uint256 public constant MAXIMUM_COLLATERALIZATION_LIMIT =
-        4000000000000000000;
+    uint256 public constant MAXIMUM_COLLATERALIZATION_LIMIT = 4000000000000000000;
 
     event GovernanceUpdated(address governance);
 
@@ -73,35 +69,17 @@ contract FormationUSD is ReentrancyGuard {
 
     event FundsHarvested(uint256 withdrawnAmount, uint256 decreasedValue);
 
-    event FundsRecalled(
-        uint256 indexed vaultId,
-        uint256 withdrawnAmount,
-        uint256 decreasedValue
-    );
+    event FundsRecalled(uint256 indexed vaultId, uint256 withdrawnAmount, uint256 decreasedValue);
 
     event FundsFlushed(uint256 amount);
 
     event TokensDeposited(address indexed account, uint256 amount);
 
-    event TokensWithdrawn(
-        address indexed account,
-        uint256 requestedAmount,
-        uint256 withdrawnAmount,
-        uint256 decreasedValue
-    );
+    event TokensWithdrawn(address indexed account, uint256 requestedAmount, uint256 withdrawnAmount, uint256 decreasedValue);
 
-    event TokensRepaid(
-        address indexed account,
-        uint256 parentAmount,
-        uint256 childAmount
-    );
+    event TokensRepaid(address indexed account, uint256 parentAmount, uint256 childAmount);
 
-    event TokensLiquidated(
-        address indexed account,
-        uint256 requestedAmount,
-        uint256 withdrawnAmount,
-        uint256 decreasedValue
-    );
+    event TokensLiquidated(address indexed account, uint256 requestedAmount, uint256 withdrawnAmount, uint256 decreasedValue);
 
     /// @dev The token that this contract is using as the parent asset.
     IMintableERC20 public token;
@@ -162,7 +140,7 @@ contract FormationUSD is ReentrancyGuard {
 
     /// @dev A mapping of adapter addresses to keep track of vault adapters that have already been added
     mapping(IVaultAdapter => bool) public adapters;
-    
+
     /// @dev The const number (10^n) to align the decimals in this system
     /// Eg. USDT(6 decimals), so the const number should be 10^(18 - 6) to make the number in this system 18 decimals
     uint256 public USDT_CONST;
@@ -174,29 +152,12 @@ contract FormationUSD is ReentrancyGuard {
         address _sentinel,
         uint256 _flushActivator
     ) public {
-        require(
-            address(_token) != ZERO_ADDRESS,
-            "Formation: token address cannot be 0x0."
-        );
-        require(
-            address(_xtoken) != ZERO_ADDRESS,
-            "Formation: xtoken address cannot be 0x0."
-        );
-        require(
-            _governance != ZERO_ADDRESS,
-            "Formation: governance address cannot be 0x0."
-        );
-        require(
-            _sentinel != ZERO_ADDRESS,
-            "Formation: sentinel address cannot be 0x0."
-        );
-        require(
-            _flushActivator > 0,
-            "Formation: flushActivator should be larger than 0"
-        );
-        require(_token.decimals() <= _xtoken.decimals(),
-            "Formation: xtoken decimals should be larger than token decimals"
-        );
+        require(address(_token) != ZERO_ADDRESS, "Formation: token address cannot be 0x0.");
+        require(address(_xtoken) != ZERO_ADDRESS, "Formation: xtoken address cannot be 0x0.");
+        require(_governance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
+        require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
+        require(_flushActivator > 0, "Formation: flushActivator should be larger than 0");
+        require(_token.decimals() <= _xtoken.decimals(), "Formation: xtoken decimals should be larger than token decimals");
         token = _token;
         xtoken = _xtoken;
         governance = _governance;
@@ -218,10 +179,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @param _pendingGovernance the new pending governance.
     function setPendingGovernance(address _pendingGovernance) external onlyGov {
-        require(
-            _pendingGovernance != ZERO_ADDRESS,
-            "Formation: governance address cannot be 0x0."
-        );
+        require(_pendingGovernance != ZERO_ADDRESS, "Formation: governance address cannot be 0x0.");
 
         pendingGovernance = _pendingGovernance;
 
@@ -232,10 +190,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// This function reverts if the caller is not the new pending governance.
     function acceptGovernance() external {
-        require(
-            msg.sender == pendingGovernance,
-            "sender is not pendingGovernance"
-        );
+        require(msg.sender == pendingGovernance, "sender is not pendingGovernance");
 
         governance = pendingGovernance;
 
@@ -243,10 +198,7 @@ contract FormationUSD is ReentrancyGuard {
     }
 
     function setSentinel(address _sentinel) external onlyGov {
-        require(
-            _sentinel != ZERO_ADDRESS,
-            "Formation: sentinel address cannot be 0x0."
-        );
+        require(_sentinel != ZERO_ADDRESS, "Formation: sentinel address cannot be 0x0.");
 
         sentinel = _sentinel;
 
@@ -261,10 +213,7 @@ contract FormationUSD is ReentrancyGuard {
     function setTransmuter(address _transmuter) external onlyGov {
         // Check that the transmuter address is not the zero address. Setting the transmuter to the zero address would break
         // transfers to the address because of `safeTransfer` checks.
-        require(
-            _transmuter != ZERO_ADDRESS,
-            "Formation: transmuter address cannot be 0x0."
-        );
+        require(_transmuter != ZERO_ADDRESS, "Formation: transmuter address cannot be 0x0.");
 
         transmuter = _transmuter;
 
@@ -286,10 +235,7 @@ contract FormationUSD is ReentrancyGuard {
     function setRewards(address _rewards) external onlyGov {
         // Check that the rewards address is not the zero address. Setting the rewards to the zero address would break
         // transfers to the address because of `safeTransfer` checks.
-        require(
-            _rewards != ZERO_ADDRESS,
-            "Formation: rewards address cannot be 0x0."
-        );
+        require(_rewards != ZERO_ADDRESS, "Formation: rewards address cannot be 0x0.");
 
         rewards = _rewards;
 
@@ -304,10 +250,7 @@ contract FormationUSD is ReentrancyGuard {
     function setHarvestFee(uint256 _harvestFee) external onlyGov {
         // Check that the harvest fee is within the acceptable range. Setting the harvest fee greater than 100% could
         // potentially break internal logic when calculating the harvest fee.
-        require(
-            _harvestFee <= PERCENT_RESOLUTION,
-            "Formation: harvest fee above maximum."
-        );
+        require(_harvestFee <= PERCENT_RESOLUTION, "Formation: harvest fee above maximum.");
 
         harvestFee = _harvestFee;
 
@@ -321,14 +264,8 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @param _limit the new collateralization limit.
     function setCollateralizationLimit(uint256 _limit) external onlyGov {
-        require(
-            _limit >= MINIMUM_COLLATERALIZATION_LIMIT,
-            "Formation: collateralization limit below minimum."
-        );
-        require(
-            _limit <= MAXIMUM_COLLATERALIZATION_LIMIT,
-            "Formation: collateralization limit above maximum."
-        );
+        require(_limit >= MINIMUM_COLLATERALIZATION_LIMIT, "Formation: collateralization limit below minimum.");
+        require(_limit <= MAXIMUM_COLLATERALIZATION_LIMIT, "Formation: collateralization limit above maximum.");
 
         _ctx.collateralizationLimit = FixedPointMath.uq192x64(_limit);
 
@@ -350,10 +287,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @param _emergencyExit if the contract should enter emergency exit mode.
     function setEmergencyExit(bool _emergencyExit) external {
-        require(
-            msg.sender == governance || msg.sender == sentinel,
-            "Formation: sender should be governance or sentinel"
-        );
+        require(msg.sender == governance || msg.sender == sentinel, "Formation: sender should be governance or sentinel");
 
         emergencyExit = _emergencyExit;
 
@@ -365,11 +299,7 @@ contract FormationUSD is ReentrancyGuard {
     /// The collateralization limit is the minimum ratio of collateral to debt that is allowed by the system.
     ///
     /// @return the collateralization limit.
-    function collateralizationLimit()
-        external
-        view
-        returns (FixedPointMath.uq192x64 memory)
-    {
+    function collateralizationLimit() external view returns (FixedPointMath.uq192x64 memory) {
         return _ctx.collateralizationLimit;
     }
 
@@ -381,14 +311,8 @@ contract FormationUSD is ReentrancyGuard {
     function initialize(IVaultAdapter _adapter) external onlyGov {
         require(!initialized, "Formation: already initialized");
 
-        require(
-            transmuter != ZERO_ADDRESS,
-            "Formation: cannot initialize transmuter address to 0x0"
-        );
-        require(
-            rewards != ZERO_ADDRESS,
-            "Formation: cannot initialize rewards address to 0x0"
-        );
+        require(transmuter != ZERO_ADDRESS, "Formation: cannot initialize transmuter address to 0x0");
+        require(rewards != ZERO_ADDRESS, "Formation: cannot initialize rewards address to 0x0");
 
         _updateActiveVault(_adapter);
 
@@ -401,11 +325,7 @@ contract FormationUSD is ReentrancyGuard {
     /// is not the token that this contract defines as the parent asset, or if the contract has not yet been initialized.
     ///
     /// @param _adapter the adapter for the vault the system will migrate to.
-    function migrate(IVaultAdapter _adapter)
-        external
-        expectInitialized
-        onlyGov
-    {
+    function migrate(IVaultAdapter _adapter) external expectInitialized onlyGov {
         _updateActiveVault(_adapter);
     }
 
@@ -415,28 +335,16 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @return the amount of funds that were harvested from the vault.
 
-    function harvest(uint256 _vaultId)
-        external
-        expectInitialized
-        returns (uint256, uint256)
-    {
+    function harvest(uint256 _vaultId) external expectInitialized returns (uint256, uint256) {
         Vault.Data storage _vault = _vaults.get(_vaultId);
 
-        (uint256 _harvestedAmount, uint256 _decreasedValue) = _vault.harvest(
-            address(this)
-        );
+        (uint256 _harvestedAmount, uint256 _decreasedValue) = _vault.harvest(address(this));
 
         if (_harvestedAmount > 0) {
-            uint256 _feeAmount = _harvestedAmount.mul(harvestFee).div(
-                PERCENT_RESOLUTION
-            );
+            uint256 _feeAmount = _harvestedAmount.mul(harvestFee).div(PERCENT_RESOLUTION);
             uint256 _distributeAmount = _harvestedAmount.sub(_feeAmount);
-            FixedPointMath.uq192x64 memory _weight = FixedPointMath
-                .fromU256(_distributeAmount)
-                .div(totalDeposited);
-            _ctx.accumulatedYieldWeight = _ctx.accumulatedYieldWeight.add(
-                _weight
-            );
+            FixedPointMath.uq192x64 memory _weight = FixedPointMath.fromU256(_distributeAmount).div(totalDeposited);
+            _ctx.accumulatedYieldWeight = _ctx.accumulatedYieldWeight.add(_weight);
 
             if (_feeAmount > 0) {
                 token.safeTransfer(rewards, _feeAmount);
@@ -457,12 +365,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _vaultId the identifier of the recall funds from.
     ///
     /// @return the amount of funds that were recalled from the vault to this contract and the decreased vault value.
-    function recall(uint256 _vaultId, uint256 _amount)
-        external
-        nonReentrant
-        expectInitialized
-        returns (uint256, uint256)
-    {
+    function recall(uint256 _vaultId, uint256 _amount) external nonReentrant expectInitialized returns (uint256, uint256) {
         return _recallFunds(_vaultId, _amount);
     }
 
@@ -501,12 +404,7 @@ contract FormationUSD is ReentrancyGuard {
     /// additional funds.
     ///
     /// @param _amount the amount of collateral to deposit.
-    function deposit(uint256 _amount)
-        external
-        nonReentrant
-        noContractAllowed
-        expectInitialized
-    {
+    function deposit(uint256 _amount) external nonReentrant noContractAllowed expectInitialized {
         require(_amount > 0, "amount is zero");
         uint256 amount_USDT = _amount.mul(USDT_CONST);
 
@@ -533,13 +431,7 @@ contract FormationUSD is ReentrancyGuard {
     /// on other internal or external systems.
     ///
     /// @param _amount the amount of collateral to withdraw.
-    function withdraw(uint256 _amount)
-        external
-        nonReentrant
-        noContractAllowed
-        expectInitialized
-        returns (uint256, uint256)
-    {
+    function withdraw(uint256 _amount) external nonReentrant noContractAllowed expectInitialized returns (uint256, uint256) {
         require(_amount > 0, "amount is zero");
 
         CDP.Data storage _cdp = _cdps[msg.sender];
@@ -547,25 +439,11 @@ contract FormationUSD is ReentrancyGuard {
 
         _cdp.update(_ctx);
 
-        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _withdrawFundsTo(
-            msg.sender,
-            _amount
-        );
-        _cdp.totalDeposited = _cdp.totalDeposited.sub(
-            _decreasedValue.mul(USDT_CONST),
-            "Exceeds withdrawable amount"
-        );
-        _cdp.checkHealth(
-            _ctx,
-            "Action blocked: unhealthy collateralization ratio"
-        );
+        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _withdrawFundsTo(msg.sender, _amount);
+        _cdp.totalDeposited = _cdp.totalDeposited.sub(_decreasedValue.mul(USDT_CONST), "Exceeds withdrawable amount");
+        _cdp.checkHealth(_ctx, "Action blocked: unhealthy collateralization ratio");
 
-        emit TokensWithdrawn(
-            msg.sender,
-            _amount,
-            _withdrawnAmount,
-            _decreasedValue
-        );
+        emit TokensWithdrawn(msg.sender, _amount, _withdrawnAmount, _decreasedValue);
 
         return (_withdrawnAmount, _decreasedValue);
     }
@@ -573,23 +451,13 @@ contract FormationUSD is ReentrancyGuard {
     /// @dev Repays debt with the native and or synthetic token.
     ///
     /// An approval is required to transfer native tokens to the transmuter.
-    function repay(uint256 _parentAmount, uint256 _childAmount)
-        external
-        nonReentrant
-        noContractAllowed
-        onLinkCheck
-        expectInitialized
-    {
+    function repay(uint256 _parentAmount, uint256 _childAmount) external nonReentrant noContractAllowed onLinkCheck expectInitialized {
         CDP.Data storage _cdp = _cdps[msg.sender];
         _cdp.update(_ctx);
         uint256 _parentAmount_USDT = 0;
 
         if (_parentAmount > 0) {
-            token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                _parentAmount
-            );
+            token.safeTransferFrom(msg.sender, address(this), _parentAmount);
             _distributeToTransmuter(_parentAmount);
             _parentAmount_USDT = _parentAmount.mul(USDT_CONST);
         }
@@ -610,14 +478,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @param _amount the amount of collateral to attempt to liquidate.
 
-    function liquidate(uint256 _amount)
-        external
-        nonReentrant
-        noContractAllowed
-        onLinkCheck
-        expectInitialized
-        returns (uint256, uint256)
-    {
+    function liquidate(uint256 _amount) external nonReentrant noContractAllowed onLinkCheck expectInitialized returns (uint256, uint256) {
         require(_amount > 0, "amount is zero");
 
         CDP.Data storage _cdp = _cdps[msg.sender];
@@ -627,22 +488,14 @@ contract FormationUSD is ReentrancyGuard {
         if (_amount > _cdp.totalDebt) {
             _amount = _cdp.totalDebt;
         }
-        
-        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _withdrawFundsTo(
-            address(this),
-            _amount.div(USDT_CONST)
-        );
+
+        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _withdrawFundsTo(address(this), _amount.div(USDT_CONST));
         //changed to new transmuter compatibillity
         _distributeToTransmuter(_withdrawnAmount);
-        
+
         _cdp.totalDeposited = _cdp.totalDeposited.sub(_decreasedValue.mul(USDT_CONST), "");
         _cdp.totalDebt = _cdp.totalDebt.sub(_withdrawnAmount.mul(USDT_CONST), "");
-        emit TokensLiquidated(
-            msg.sender,
-            _amount,
-            _withdrawnAmount,
-            _decreasedValue
-        );
+        emit TokensLiquidated(msg.sender, _amount, _withdrawnAmount, _decreasedValue);
 
         return (_withdrawnAmount, _decreasedValue);
     }
@@ -654,13 +507,7 @@ contract FormationUSD is ReentrancyGuard {
     /// This function reverts if the debt is increased and the CDP health check fails.
     ///
     /// @param _amount the amount of formation tokens to borrow.
-    function mint(uint256 _amount)
-        external
-        nonReentrant
-        noContractAllowed
-        onLinkCheck
-        expectInitialized
-    {
+    function mint(uint256 _amount) external nonReentrant noContractAllowed onLinkCheck expectInitialized {
         require(_amount > 0, "amount is zero");
         CDP.Data storage _cdp = _cdps[msg.sender];
         _cdp.update(_ctx);
@@ -692,11 +539,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _vaultId the identifier of the vault.
     ///
     /// @return the vault adapter.
-    function getVaultAdapter(uint256 _vaultId)
-        external
-        view
-        returns (IVaultAdapter)
-    {
+    function getVaultAdapter(uint256 _vaultId) external view returns (IVaultAdapter) {
         Vault.Data storage _vault = _vaults.get(_vaultId);
         return _vault.adapter;
     }
@@ -706,11 +549,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _vaultId the identifier of the vault.
     ///
     /// @return the total amount of deposited tokens.
-    function getVaultTotalDeposited(uint256 _vaultId)
-        external
-        view
-        returns (uint256)
-    {
+    function getVaultTotalDeposited(uint256 _vaultId) external view returns (uint256) {
         Vault.Data storage _vault = _vaults.get(_vaultId);
         return _vault.totalDeposited;
     }
@@ -720,11 +559,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _account the user account of the CDP to query.
     ///
     /// @return the deposited amount of tokens.
-    function getCdpTotalDeposited(address _account)
-        external
-        view
-        returns (uint256)
-    {
+    function getCdpTotalDeposited(address _account) external view returns (uint256) {
         CDP.Data storage _cdp = _cdps[_account];
         return _cdp.totalDeposited.div(USDT_CONST);
     }
@@ -744,11 +579,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _account the user account of the CDP to query.
     ///
     /// @return the amount of credit.
-    function getCdpTotalCredit(address _account)
-        external
-        view
-        returns (uint256)
-    {
+    function getCdpTotalCredit(address _account) external view returns (uint256) {
         CDP.Data storage _cdp = _cdps[_account];
         return _cdp.getUpdatedTotalCredit(_ctx);
     }
@@ -758,11 +589,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _account the user account of the CDP to query.
     ///
     /// @return the block number of the last deposit.
-    function getCdpLastDeposit(address _account)
-        external
-        view
-        returns (uint256)
-    {
+    function getCdpLastDeposit(address _account) external view returns (uint256) {
         CDP.Data storage _cdp = _cdps[_account];
         return _cdp.lastDeposit;
     }
@@ -782,18 +609,10 @@ contract FormationUSD is ReentrancyGuard {
     /// This is used over a modifier limit of pegged interactions.
     modifier onLinkCheck() {
         if (pegMinimum > 0) {
-            (
-                uint80 roundId,
-                int256 answer,
-                uint256 startedAt,
-                uint256 updatedAt,
-                uint80 answeredInRound
-            ) = IChainlink(_linkGasOracle).latestRoundData();
+            (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = IChainlink(_linkGasOracle)
+                .latestRoundData();
             require(updatedAt > 0, "Round not complete");
-            require(
-                block.timestamp <= updatedAt.add(oracleUpdateDelay),
-                "Update time exceeded"
-            );
+            require(block.timestamp <= updatedAt.add(oracleUpdateDelay), "Update time exceeded");
             require(uint256(answer) > pegMinimum, "off peg limitation");
         }
         _;
@@ -802,10 +621,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// This is used to prevent contracts from interacting.
     modifier noContractAllowed() {
-        require(
-            !address(msg.sender).isContract() && msg.sender == tx.origin,
-            "Sorry we do not accept contract!"
-        );
+        require(!address(msg.sender).isContract() && msg.sender == tx.origin, "Sorry we do not accept contract!");
         _;
     }
     /// @dev Checks that the contract is in an initialized state.
@@ -831,10 +647,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @param _adapter the adapter for the new active vault.
     function _updateActiveVault(IVaultAdapter _adapter) internal {
-        require(
-            _adapter != IVaultAdapter(ZERO_ADDRESS),
-            "Formation: active vault address cannot be 0x0."
-        );
+        require(_adapter != IVaultAdapter(ZERO_ADDRESS), "Formation: active vault address cannot be 0x0.");
         require(_adapter.token() == token, "Formation: token mismatch.");
         require(!adapters[_adapter], "Adapter already in use");
         adapters[_adapter] = true;
@@ -850,22 +663,14 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _amount  the amount of funds to recall from the vault.
     ///
     /// @return the amount of funds that were recalled from the vault to this contract and the decreased vault value.
-    function _recallFunds(uint256 _vaultId, uint256 _amount)
-        internal
-        returns (uint256, uint256)
-    {
+    function _recallFunds(uint256 _vaultId, uint256 _amount) internal returns (uint256, uint256) {
         require(
-            emergencyExit ||
-                msg.sender == governance ||
-                _vaultId != _vaults.lastIndex(),
+            emergencyExit || msg.sender == governance || _vaultId != _vaults.lastIndex(),
             "Formation: not an emergency, not governance, and user does not have permission to recall funds from active vault"
         );
 
         Vault.Data storage _vault = _vaults.get(_vaultId);
-        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(
-            address(this),
-            _amount
-        );
+        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(address(this), _amount);
 
         emit FundsRecalled(_vaultId, _withdrawnAmount, _decreasedValue);
 
@@ -881,15 +686,9 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _recipient the account to withdraw the funds to.
     /// @param _amount    the amount of funds to withdraw.
 
-    function _withdrawFundsTo(address _recipient, uint256 _amount)
-        internal
-        returns (uint256, uint256)
-    {
+    function _withdrawFundsTo(address _recipient, uint256 _amount) internal returns (uint256, uint256) {
         // Pull the funds from the buffer.
-        uint256 _bufferedAmount = Math.min(
-            _amount,
-            token.balanceOf(address(this))
-        );
+        uint256 _bufferedAmount = Math.min(_amount, token.balanceOf(address(this)));
 
         if (_recipient != address(this)) {
             token.safeTransfer(_recipient, _bufferedAmount);
@@ -903,8 +702,7 @@ contract FormationUSD is ReentrancyGuard {
         // Pull the remaining funds from the active vault.
         if (_remainingAmount > 0) {
             Vault.Data storage _activeVault = _vaults.last();
-            (uint256 _withdrawAmount, uint256 _decreasedValue) = _activeVault
-                .withdraw(_recipient, _remainingAmount);
+            (uint256 _withdrawAmount, uint256 _decreasedValue) = _activeVault.withdraw(_recipient, _remainingAmount);
             _totalWithdrawn = _totalWithdrawn.add(_withdrawAmount);
             _totalDecreasedValue = _totalDecreasedValue.add(_decreasedValue);
         }

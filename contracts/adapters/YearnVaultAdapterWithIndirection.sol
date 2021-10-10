@@ -2,8 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-
-
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -22,8 +20,7 @@ contract YearnVaultAdapterWithIndirection is YearnVaultAdapter {
     using SafeERC20 for IyVaultV2;
     using SafeMath for uint256;
 
-    constructor(IyVaultV2 _vault, address _admin) YearnVaultAdapter(_vault, _admin) public {
-    }
+    constructor(IyVaultV2 _vault, address _admin) public YearnVaultAdapter(_vault, _admin) {}
 
     /// @dev Sends vault tokens to the recipient
     ///

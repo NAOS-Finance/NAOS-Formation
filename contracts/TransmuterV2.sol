@@ -47,7 +47,7 @@ contract TransmuterV2 is Context {
     mapping(address => bool) public whiteList;
 
     /// @dev addresses whitelisted to run keepr jobs (harvest)
-    mapping (address => bool) public keepers;
+    mapping(address => bool) public keepers;
 
     /// @dev The threshold above which excess funds will be deployed to yield farming activities
     uint256 public plantableThreshold = 100000000000000000000000;
@@ -97,11 +97,7 @@ contract TransmuterV2 is Context {
 
     event Transmutation(address transmutedTo, uint256 amountTransmuted);
 
-    event ForcedTransmutation(
-        address transmutedBy,
-        address transmutedTo,
-        uint256 amountTransmuted
-    );
+    event ForcedTransmutation(address transmutedBy, address transmutedTo, uint256 amountTransmuted);
 
     event Distribution(address origin, uint256 amount);
 
@@ -117,11 +113,7 @@ contract TransmuterV2 is Context {
 
     event PauseUpdated(bool status);
 
-    event FundsRecalled(
-        uint256 indexed vaultId,
-        uint256 withdrawnAmount,
-        uint256 decreasedValue
-    );
+    event FundsRecalled(uint256 indexed vaultId, uint256 withdrawnAmount, uint256 decreasedValue);
 
     event FundsHarvested(uint256 withdrawnAmount, uint256 decreasedValue);
 
@@ -135,7 +127,10 @@ contract TransmuterV2 is Context {
         address _governance
     ) public {
         require(_governance != ZERO_ADDRESS, "Transmuter: 0 gov");
-        require(IERC20Burnable(_token).decimals() <= IERC20Burnable(_NToken).decimals(),"Transmuter: xtoken decimals should be larger than token decimals");
+        require(
+            IERC20Burnable(_token).decimals() <= IERC20Burnable(_NToken).decimals(),
+            "Transmuter: xtoken decimals should be larger than token decimals"
+        );
         USDT_CONST = uint256(10)**(uint256(IERC20Burnable(_NToken).decimals()).sub(uint256(IERC20Burnable(_token).decimals())));
         governance = _governance;
         NToken = _NToken;
@@ -145,13 +140,8 @@ contract TransmuterV2 is Context {
 
     ///@return displays the user's share of the pooled nTokens.
     function dividendsOwing(address account) public view returns (uint256) {
-        uint256 newDividendPoints = totalDividendPoints.sub(
-            lastDividendPoints[account]
-        );
-        return
-            depositedNTokens[account].mul(newDividendPoints).div(
-                pointMultiplier
-            );
+        uint256 newDividendPoints = totalDividendPoints.sub(lastDividendPoints[account]);
+        return depositedNTokens[account].mul(newDividendPoints).div(pointMultiplier);
     }
 
     ///@dev modifier to fill the bucket and keep bookkeeping correct incase of increase/decrease in shares
@@ -195,9 +185,7 @@ contract TransmuterV2 is Context {
             } else {
                 //needs to be bigger than 0 cuzz solidity no decimals
                 if (_buffer.mul(deltaTime) > TRANSMUTATION_PERIOD) {
-                    _toDistribute = _buffer.mul(deltaTime).div(
-                        TRANSMUTATION_PERIOD
-                    );
+                    _toDistribute = _buffer.mul(deltaTime).div(TRANSMUTATION_PERIOD);
                 }
             }
 
@@ -239,14 +227,8 @@ contract TransmuterV2 is Context {
     ///@dev set the TRANSMUTATION_PERIOD variable
     ///
     /// sets the length (in blocks) of one full distribution phase
-    function setTransmutationPeriod(uint256 newTransmutationPeriod)
-        public
-        onlyGov
-    {
-        require(
-            newTransmutationPeriod > 0,
-            "Transmuter: transmutation period cannot be 0"
-        );
+    function setTransmutationPeriod(uint256 newTransmutationPeriod) public onlyGov {
+        require(newTransmutationPeriod > 0, "Transmuter: transmutation period cannot be 0");
         TRANSMUTATION_PERIOD = newTransmutationPeriod;
         emit TransmuterPeriodUpdated(TRANSMUTATION_PERIOD);
     }
@@ -256,10 +238,7 @@ contract TransmuterV2 is Context {
     ///This function reverts if there is no realisedToken balance
     function claim() public {
         address sender = msg.sender;
-        require(
-            realisedTokens[sender] > 0,
-            "no realisedToken balance for sender"
-        );
+        require(realisedTokens[sender] > 0, "no realisedToken balance for sender");
         uint256 value = realisedTokens[sender];
         realisedTokens[sender] = 0;
         ensureSufficientFundsExistLocally(value);
@@ -278,11 +257,8 @@ contract TransmuterV2 is Context {
 
         // normalize amount to fit the digit of token
         amount = amount.div(USDT_CONST).mul(USDT_CONST);
-        
-        require(
-            depositedNTokens[sender] >= amount,
-            "Transmuter: unstake amount exceeds deposited amount"
-        );
+
+        require(depositedNTokens[sender] >= amount, "Transmuter: unstake amount exceeds deposited amount");
         depositedNTokens[sender] = depositedNTokens[sender].sub(amount);
         totalSupplyNtokens = totalSupplyNtokens.sub(amount);
         IERC20Burnable(NToken).safeTransfer(sender, amount);
@@ -292,12 +268,7 @@ contract TransmuterV2 is Context {
     ///@dev Deposits nTokens into the transmuter
     ///
     ///@param amount the amount of nTokens to stake
-    function stake(uint256 amount)
-        public
-        runPhasedDistribution
-        updateAccount(msg.sender)
-        checkIfNewUser
-    {
+    function stake(uint256 amount) public runPhasedDistribution updateAccount(msg.sender) checkIfNewUser {
         require(!pause, "emergency pause enabled");
 
         // requires approval of NToken first
@@ -318,11 +289,7 @@ contract TransmuterV2 is Context {
     /// once the NToken has been converted, it is burned, and the base token becomes realisedTokens which can be recieved using claim()
     ///
     /// reverts if there are no pendingdivs or tokensInBucket
-    function transmute()
-        public
-        runPhasedDistribution
-        updateAccount(msg.sender)
-    {
+    function transmute() public runPhasedDistribution updateAccount(msg.sender) {
         address sender = msg.sender;
         uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[sender];
@@ -365,24 +332,15 @@ contract TransmuterV2 is Context {
     /// This function reverts if the address to transmute is not over-filled.
     ///
     /// @param toTransmute address of the account you will force transmute.
-    function forceTransmute(address toTransmute)
-        public
-        runPhasedDistribution
-        updateAccount(msg.sender)
-        updateAccount(toTransmute)
-        checkIfNewUser
-    {
+    function forceTransmute(address toTransmute) public runPhasedDistribution updateAccount(msg.sender) updateAccount(toTransmute) checkIfNewUser {
         //load into memory
         uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[toTransmute];
-        
-        // check restrictions
-        require(
-            pendingz.mul(USDT_CONST) > depositedNTokens[toTransmute],
-            "Transmuter: !overflow"
-        );
 
-         // empty bucket
+        // check restrictions
+        require(pendingz.mul(USDT_CONST) > depositedNTokens[toTransmute], "Transmuter: !overflow");
+
+        // empty bucket
         tokensInBucket[toTransmute] = 0;
 
         // calculaate diffrence
@@ -404,7 +362,6 @@ contract TransmuterV2 is Context {
 
         // add payout
         realisedTokens[toTransmute] = realisedTokens[toTransmute].add(pendingz);
-
 
         uint256 value = realisedTokens[toTransmute];
 
@@ -450,11 +407,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param origin the account that is sending the tokens to be distributed.
     /// @param amount the amount of base tokens to be distributed to the transmuter.
-    function distribute(address origin, uint256 amount)
-        public
-        onlyWhitelisted
-        runPhasedDistribution
-    {
+    function distribute(address origin, uint256 amount) public onlyWhitelisted runPhasedDistribution {
         require(!pause, "emergency pause enabled");
         IERC20Burnable(token).safeTransferFrom(origin, address(this), amount);
         buffer = buffer.add(amount);
@@ -467,9 +420,7 @@ contract TransmuterV2 is Context {
     /// @param amount the amount of base tokens to be distributed in the transmuter.
     function increaseAllocations(uint256 amount) internal {
         if (totalSupplyNtokens > 0 && amount > 0) {
-            totalDividendPoints = totalDividendPoints.add(
-                amount.mul(pointMultiplier).div(totalSupplyNtokens)
-            );
+            totalDividendPoints = totalDividendPoints.add(amount.mul(pointMultiplier).div(totalSupplyNtokens));
             unclaimedDividends = unclaimedDividends.add(amount);
         } else {
             buffer = buffer.add(amount);
@@ -495,15 +446,11 @@ contract TransmuterV2 is Context {
         )
     {
         uint256 _depositedN = depositedNTokens[user];
-        uint256 _toDistribute = buffer
-            .mul(block.number.sub(lastDepositBlock))
-            .div(TRANSMUTATION_PERIOD);
+        uint256 _toDistribute = buffer.mul(block.number.sub(lastDepositBlock)).div(TRANSMUTATION_PERIOD);
         if (block.number.sub(lastDepositBlock) > TRANSMUTATION_PERIOD) {
             _toDistribute = buffer;
         }
-        uint256 _pendingdivs = _toDistribute.mul(depositedNTokens[user]).div(
-            totalSupplyNtokens
-        );
+        uint256 _pendingdivs = _toDistribute.mul(depositedNTokens[user]).div(totalSupplyNtokens);
         uint256 _inbucket = tokensInBucket[user].add(dividendsOwing(user));
         uint256 _realised = realisedTokens[user];
         return (_depositedN, _pendingdivs, _inbucket, _realised);
@@ -519,32 +466,22 @@ contract TransmuterV2 is Context {
     /// @param to the last index of the userList
     ///
     /// returns the userList with their staking status in paginated form.
-    function getMultipleUserInfo(uint256 from, uint256 to)
-        public
-        view
-        returns (address[] memory theUserList, uint256[] memory theUserData)
-    {
+    function getMultipleUserInfo(uint256 from, uint256 to) public view returns (address[] memory theUserList, uint256[] memory theUserData) {
         uint256 i = from;
         uint256 delta = to - from;
         address[] memory _theUserList = new address[](delta); //user
         uint256[] memory _theUserData = new uint256[](delta * 2); //deposited-bucket
         uint256 y = 0;
-        uint256 _toDistribute = buffer
-            .mul(block.number.sub(lastDepositBlock))
-            .div(TRANSMUTATION_PERIOD);
+        uint256 _toDistribute = buffer.mul(block.number.sub(lastDepositBlock)).div(TRANSMUTATION_PERIOD);
         if (block.number.sub(lastDepositBlock) > TRANSMUTATION_PERIOD) {
             _toDistribute = buffer;
         }
         for (uint256 x = 0; x < delta; x += 1) {
             _theUserList[x] = userList[i];
             _theUserData[y] = depositedNTokens[userList[i]];
-            _theUserData[y + 1] = dividendsOwing(userList[i])
-                .add(tokensInBucket[userList[i]])
-                .add(
-                    _toDistribute.mul(depositedNTokens[userList[i]]).div(
-                        totalSupplyNtokens
-                    )
-                );
+            _theUserData[y + 1] = dividendsOwing(userList[i]).add(tokensInBucket[userList[i]]).add(
+                _toDistribute.mul(depositedNTokens[userList[i]]).div(totalSupplyNtokens)
+            );
             y += 2;
             i += 1;
         }
@@ -616,9 +553,9 @@ contract TransmuterV2 is Context {
     ///
     /// @param _keepers the accounts to set states for.
     /// @param _states the accounts states.
-    function setKeepers(address[] calldata _keepers, bool[] calldata _states) external onlyGov() {
+    function setKeepers(address[] calldata _keepers, bool[] calldata _states) external onlyGov {
         uint256 n = _keepers.length;
-        for(uint256 i = 0; i < n; i++) {
+        for (uint256 i = 0; i < n; i++) {
             keepers[_keepers[i]] = _states[i];
         }
         emit KeepersSet(_keepers, _states);
@@ -629,15 +566,9 @@ contract TransmuterV2 is Context {
     /// This function checks that the transmuter and rewards have been set and sets up the active vault.
     ///
     /// @param _adapter the vault adapter of the active vault.
-    function initialize(YearnVaultAdapterWithIndirection _adapter)
-        external
-        onlyGov
-    {
+    function initialize(YearnVaultAdapterWithIndirection _adapter) external onlyGov {
         require(!initialized, "Transmuter: already initialized");
-        require(
-            rewards != ZERO_ADDRESS,
-            "Transmuter: reward address should not be 0x0"
-        );
+        require(rewards != ZERO_ADDRESS, "Transmuter: reward address should not be 0x0");
 
         _updateActiveVault(_adapter);
 
@@ -650,10 +581,7 @@ contract TransmuterV2 is Context {
     /// is not the token that this contract defines as the parent asset, or if the contract has not yet been initialized.
     ///
     /// @param _adapter the adapter for the vault the system will migrate to.
-    function migrate(YearnVaultAdapterWithIndirection _adapter)
-        external
-        onlyGov
-    {
+    function migrate(YearnVaultAdapterWithIndirection _adapter) external onlyGov {
         require(initialized, "Transmuter: not initialized.");
         _updateActiveVault(_adapter);
     }
@@ -665,20 +593,12 @@ contract TransmuterV2 is Context {
     ///
     /// @param _adapter the adapter for the new active vault.
     function _updateActiveVault(YearnVaultAdapterWithIndirection _adapter) internal {
-        require(
-            _adapter != YearnVaultAdapterWithIndirection(ZERO_ADDRESS),
-            "Transmuter: active vault address cannot be 0x0."
-        );
-        require(
-            address(_adapter.token()) == token,
-            "Transmuter.vault: token mismatch."
-        );
+        require(_adapter != YearnVaultAdapterWithIndirection(ZERO_ADDRESS), "Transmuter: active vault address cannot be 0x0.");
+        require(address(_adapter.token()) == token, "Transmuter.vault: token mismatch.");
         require(!adapters[_adapter], "Adapter already in use");
         adapters[_adapter] = true;
 
-        _vaults.push(
-            VaultWithIndirection.Data({adapter: _adapter, totalDeposited: 0})
-        );
+        _vaults.push(VaultWithIndirection.Data({adapter: _adapter, totalDeposited: 0}));
 
         emit ActiveVaultUpdated(_adapter);
     }
@@ -710,7 +630,6 @@ contract TransmuterV2 is Context {
         return _vault.totalDeposited;
     }
 
-
     /// @dev Recalls funds from active vault if less than amt exist locally
     ///
     /// @param amt amount of funds that need to exist locally to fulfill pending request
@@ -727,10 +646,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param _vaultId the id of the vault from which to recall funds
     function recallAllFundsFromVault(uint256 _vaultId) external {
-        require(
-            pause && (msg.sender == governance || msg.sender == sentinel),
-            "Transmuter: not paused, or not governance or sentinel"
-        );
+        require(pause && (msg.sender == governance || msg.sender == sentinel), "Transmuter: not paused, or not governance or sentinel");
         _recallAllFundsFromVault(_vaultId);
     }
 
@@ -739,8 +655,7 @@ contract TransmuterV2 is Context {
     /// @param _vaultId the id of the vault from which to recall funds
     function _recallAllFundsFromVault(uint256 _vaultId) internal {
         VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
-        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault
-            .withdrawAll(address(this));
+        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdrawAll(address(this));
         emit FundsRecalled(_vaultId, _withdrawnAmount, _decreasedValue);
     }
 
@@ -749,10 +664,7 @@ contract TransmuterV2 is Context {
     /// @param _vaultId the id of the vault from which to recall funds
     /// @param _amount the amount of funds to recall
     function recallFundsFromVault(uint256 _vaultId, uint256 _amount) external {
-        require(
-            pause && (msg.sender == governance || msg.sender == sentinel),
-            "Transmuter: not paused, or not governance or sentinel"
-        );
+        require(pause && (msg.sender == governance || msg.sender == sentinel), "Transmuter: not paused, or not governance or sentinel");
         _recallFundsFromVault(_vaultId, _amount);
     }
 
@@ -762,10 +674,7 @@ contract TransmuterV2 is Context {
     /// @param _amount the amount of funds to recall
     function _recallFundsFromVault(uint256 _vaultId, uint256 _amount) internal {
         VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
-        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(
-            address(this),
-            _amount
-        );
+        (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(address(this), _amount);
         emit FundsRecalled(_vaultId, _withdrawnAmount, _decreasedValue);
     }
 
@@ -817,10 +726,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param _sentinel address of the new sentinel
     function setSentinel(address _sentinel) external onlyGov {
-        require(
-            _sentinel != ZERO_ADDRESS,
-            "Transmuter: sentinel address cannot be 0x0."
-        );
+        require(_sentinel != ZERO_ADDRESS, "Transmuter: sentinel address cannot be 0x0.");
         sentinel = _sentinel;
         emit SentinelUpdated(_sentinel);
     }
@@ -830,10 +736,7 @@ contract TransmuterV2 is Context {
     /// This function reverts if the caller is not the current governance.
     ///
     /// @param _plantableThreshold the new plantable threshold.
-    function setPlantableThreshold(uint256 _plantableThreshold)
-        external
-        onlyGov
-    {
+    function setPlantableThreshold(uint256 _plantableThreshold) external onlyGov {
         plantableThreshold = _plantableThreshold;
         emit PlantableThresholdUpdated(_plantableThreshold);
     }
@@ -858,10 +761,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param _pause if the contract should enter emergency exit mode.
     function setPause(bool _pause) external {
-        require(
-            msg.sender == governance || msg.sender == sentinel,
-            "!(gov || sentinel)"
-        );
+        require(msg.sender == governance || msg.sender == sentinel, "!(gov || sentinel)");
         pause = _pause;
         emit PauseUpdated(_pause);
     }
@@ -871,12 +771,10 @@ contract TransmuterV2 is Context {
     /// @param _vaultId the identifier of the vault to harvest from.
     ///
     /// @return the amount of funds that were harvested from the vault.
-    function harvest(uint256 _vaultId) external onlyKeeper() returns (uint256, uint256) {
+    function harvest(uint256 _vaultId) external onlyKeeper returns (uint256, uint256) {
         VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
 
-        (uint256 _harvestedAmount, uint256 _decreasedValue) = _vault.harvest(
-            rewards
-        );
+        (uint256 _harvestedAmount, uint256 _decreasedValue) = _vault.harvest(rewards);
 
         emit FundsHarvested(_harvestedAmount, _decreasedValue);
 
@@ -891,10 +789,7 @@ contract TransmuterV2 is Context {
     function setRewards(address _rewards) external onlyGov {
         // Check that the rewards address is not the zero address. Setting the rewards to the zero address would break
         // transfers to the address because of `safeTransfer` checks.
-        require(
-            _rewards != ZERO_ADDRESS,
-            "Transmuter: rewards address cannot be 0x0."
-        );
+        require(_rewards != ZERO_ADDRESS, "Transmuter: rewards address cannot be 0x0.");
 
         rewards = _rewards;
 
@@ -910,10 +805,7 @@ contract TransmuterV2 is Context {
 
         // leave enough funds to service any pending transmutations
         uint256 totalFunds = IERC20Burnable(token).balanceOf(address(this));
-        uint256 migratableFunds = totalFunds.sub(
-            totalSupplyNtokens.div(USDT_CONST),
-            "not enough funds to service stakes"
-        );
+        uint256 migratableFunds = totalFunds.sub(totalSupplyNtokens.div(USDT_CONST), "not enough funds to service stakes");
         IERC20Burnable(token).approve(migrateTo, migratableFunds);
         ITransmuter(migrateTo).distribute(address(this), migratableFunds);
         emit MigrationComplete(migrateTo, migratableFunds);
