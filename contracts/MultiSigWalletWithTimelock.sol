@@ -65,13 +65,7 @@ contract MultiSigWalletWithTimeLock is MultiSigWallet {
 
     /// @dev Allows an owner to confirm a transaction.
     /// @param transactionId Transaction ID.
-    function confirmTransaction(uint256 transactionId)
-        public
-        override
-        ownerExists(msg.sender)
-        transactionExists(transactionId)
-        notConfirmed(transactionId, msg.sender)
-    {
+    function confirmTransaction(uint256 transactionId) public override ownerExists(msg.sender) transactionExists(transactionId) notConfirmed(transactionId, msg.sender) {
         bool isTxFullyConfirmedBeforeConfirmation = isConfirmed(transactionId);
 
         confirmations[transactionId][msg.sender] = true;
@@ -84,13 +78,7 @@ contract MultiSigWalletWithTimeLock is MultiSigWallet {
 
     /// @dev Allows anyone to execute a confirmed transaction.
     /// @param transactionId Transaction ID.
-    function executeTransaction(uint256 transactionId)
-        public
-        override
-        notExecuted(transactionId)
-        fullyConfirmed(transactionId)
-        pastTimeLock(transactionId)
-    {
+    function executeTransaction(uint256 transactionId) public override notExecuted(transactionId) fullyConfirmed(transactionId) pastTimeLock(transactionId) {
         Transaction storage txn = transactions[transactionId];
         txn.executed = true;
         if (external_call(txn.destination, txn.value, txn.data.length, txn.data)) {

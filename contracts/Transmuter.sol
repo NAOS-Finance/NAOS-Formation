@@ -61,10 +61,7 @@ contract Transmuter is Context {
         require(_NToken != ZERO_ADDRESS, "Transmuter: NToken address cannot be 0x0");
         require(_Token != ZERO_ADDRESS, "Transmuter: Token address cannot be 0x0");
         require(_governance != ZERO_ADDRESS, "Transmuter: 0 gov");
-        require(
-            IERC20Burnable(_Token).decimals() <= IERC20Burnable(_NToken).decimals(),
-            "Transmuter: xtoken decimals should be larger than token decimals"
-        );
+        require(IERC20Burnable(_Token).decimals() <= IERC20Burnable(_NToken).decimals(), "Transmuter: xtoken decimals should be larger than token decimals");
         USDT_CONST = uint256(10)**(uint256(IERC20Burnable(_NToken).decimals()).sub(uint256(IERC20Burnable(_Token).decimals())));
         governance = _governance;
         NToken = _NToken;
@@ -396,9 +393,7 @@ contract Transmuter is Context {
         for (uint256 x = 0; x < delta; x += 1) {
             _theUserList[x] = userList[i];
             _theUserData[y] = depositedNTokens[userList[i]];
-            _theUserData[y + 1] = dividendsOwing(userList[i]).add(tokensInBucket[userList[i]]).add(
-                _toDistribute.mul(depositedNTokens[userList[i]]).div(totalSupplyNtokens)
-            );
+            _theUserData[y + 1] = dividendsOwing(userList[i]).add(tokensInBucket[userList[i]]).add(_toDistribute.mul(depositedNTokens[userList[i]]).div(totalSupplyNtokens));
             y += 2;
             i += 1;
         }

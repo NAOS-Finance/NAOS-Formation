@@ -602,8 +602,7 @@ contract Formation is ReentrancyGuard {
     /// This is used over a modifier limit of pegged interactions.
     modifier onLinkCheck() {
         if (pegMinimum > 0) {
-            (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = IChainlink(_linkGasOracle)
-                .latestRoundData();
+            (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = IChainlink(_linkGasOracle).latestRoundData();
             require(updatedAt > 0, "Round not complete");
             require(block.timestamp <= updatedAt.add(oracleUpdateDelay), "Update time exceeded");
             require(uint256(answer) > pegMinimum, "off peg limitation");
@@ -657,10 +656,7 @@ contract Formation is ReentrancyGuard {
     ///
     /// @return the amount of funds that were recalled from the vault to this contract and the decreased vault value.
     function _recallFunds(uint256 _vaultId, uint256 _amount) internal returns (uint256, uint256) {
-        require(
-            emergencyExit || msg.sender == governance || _vaultId != _vaults.lastIndex(),
-            "Formation: not an emergency, not governance, and user does not have permission to recall funds from active vault"
-        );
+        require(emergencyExit || msg.sender == governance || _vaultId != _vaults.lastIndex(), "Formation: not an emergency, not governance, and user does not have permission to recall funds from active vault");
 
         Vault.Data storage _vault = _vaults.get(_vaultId);
         (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(address(this), _amount);

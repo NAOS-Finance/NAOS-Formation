@@ -166,13 +166,7 @@ contract MultiSigWallet {
 
     /// @dev Allows an owner to confirm a transaction.
     /// @param transactionId Transaction ID.
-    function confirmTransaction(uint256 transactionId)
-        public
-        virtual
-        ownerExists(msg.sender)
-        transactionExists(transactionId)
-        notConfirmed(transactionId, msg.sender)
-    {
+    function confirmTransaction(uint256 transactionId) public virtual ownerExists(msg.sender) transactionExists(transactionId) notConfirmed(transactionId, msg.sender) {
         confirmations[transactionId][msg.sender] = true;
         emit Confirmation(msg.sender, transactionId);
         executeTransaction(transactionId);
@@ -180,25 +174,14 @@ contract MultiSigWallet {
 
     /// @dev Allows an owner to revoke a confirmation for a transaction.
     /// @param transactionId Transaction ID.
-    function revokeConfirmation(uint256 transactionId)
-        public
-        ownerExists(msg.sender)
-        confirmed(transactionId, msg.sender)
-        notExecuted(transactionId)
-    {
+    function revokeConfirmation(uint256 transactionId) public ownerExists(msg.sender) confirmed(transactionId, msg.sender) notExecuted(transactionId) {
         confirmations[transactionId][msg.sender] = false;
         emit Revocation(msg.sender, transactionId);
     }
 
     /// @dev Allows anyone to execute a confirmed transaction.
     /// @param transactionId Transaction ID.
-    function executeTransaction(uint256 transactionId)
-        public
-        virtual
-        ownerExists(msg.sender)
-        confirmed(transactionId, msg.sender)
-        notExecuted(transactionId)
-    {
+    function executeTransaction(uint256 transactionId) public virtual ownerExists(msg.sender) confirmed(transactionId, msg.sender) notExecuted(transactionId) {
         if (isConfirmed(transactionId)) {
             Transaction storage txn = transactions[transactionId];
             txn.executed = true;
@@ -283,8 +266,7 @@ contract MultiSigWallet {
     /// @param executed Include executed transactions.
     /// @return count Total number of transactions after filters are applied.
     function getTransactionCount(bool pending, bool executed) public view returns (uint256 count) {
-        for (uint256 i = 0; i < transactionCount; i++)
-            if ((pending && !transactions[i].executed) || (executed && transactions[i].executed)) count += 1;
+        for (uint256 i = 0; i < transactionCount; i++) if ((pending && !transactions[i].executed) || (executed && transactions[i].executed)) count += 1;
     }
 
     /// @dev Returns list of owners.

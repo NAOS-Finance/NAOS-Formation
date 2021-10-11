@@ -123,15 +123,7 @@ contract StakingPools is ReentrancyGuard {
 
         uint256 _poolId = _pools.length();
 
-        _pools.push(
-            Pool.Data({
-                token: _token,
-                totalDeposited: 0,
-                rewardWeight: 0,
-                accumulatedRewardWeight: FixedPointMath.uq192x64(0),
-                lastUpdatedBlock: block.number
-            })
-        );
+        _pools.push(Pool.Data({token: _token, totalDeposited: 0, rewardWeight: 0, accumulatedRewardWeight: FixedPointMath.uq192x64(0), lastUpdatedBlock: block.number}));
 
         tokenPoolIds[_token] = _poolId + 1;
 
