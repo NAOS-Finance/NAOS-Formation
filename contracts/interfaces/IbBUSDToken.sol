@@ -10,11 +10,5 @@ interface IbBUSDToken is IDetailedERC20 {
 
     function token() external view returns (address);
 
-    function vaultDebtShare() external view returns (uint256);
-
-    function vaultDebtVal() external view returns (uint256);
-
-    function debtShareToVal(uint256) external view returns (uint256);
-
     function totalToken() external view returns (uint256);
 }
