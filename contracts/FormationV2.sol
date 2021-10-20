@@ -16,7 +16,7 @@ import {IChainlink} from "./interfaces/IChainlink.sol";
 import {IVaultAdapter} from "./interfaces/IVaultAdapter.sol";
 import {Vault} from "./libraries/formation/Vault.sol";
 
-contract FormationUSD is ReentrancyGuard {
+contract FormationV2 is ReentrancyGuard {
     using CDP for CDP.Data;
     using FixedPointMath for FixedPointMath.uq192x64;
     using Vault for Vault.Data;

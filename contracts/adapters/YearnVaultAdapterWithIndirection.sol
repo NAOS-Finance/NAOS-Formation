@@ -7,7 +7,6 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import {FixedPointMath} from "../libraries/FixedPointMath.sol";
 import {IDetailedERC20} from "../interfaces/IDetailedERC20.sol";
-import {IVaultAdapter} from "../interfaces/IVaultAdapter.sol";
 import {IyVaultV2} from "../interfaces/IyVaultV2.sol";
 import {YearnVaultAdapter} from "./YearnVaultAdapter.sol";
 

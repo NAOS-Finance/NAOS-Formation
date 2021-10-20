@@ -13,11 +13,6 @@ import { VaultAdapterMock } from "../../types/VaultAdapterMock";
 import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
 import { YearnControllerMock } from "../../types/YearnControllerMock";
-import { IbBusdMock } from "../../types/IbBUSDMock";
-import { UniswapV2Mock } from "../../types/UniswapV2Mock";
-import { AlpacaStakingPoolMock } from "../../types/AlpacaStakingPoolMock";
-import { AlpacaVaultAdapter } from "../../types/AlpacaVaultAdapter";
-import { min } from "moment";
 const {parseEther, formatEther} = utils;
 
 chai.use(solidity);
@@ -33,10 +28,6 @@ let TransmuterFactory: ContractFactory;
 let YearnVaultAdapterFactory: ContractFactory;
 let YearnVaultMockFactory: ContractFactory;
 let YearnControllerMockFactory: ContractFactory;
-let ibBUSDMockFactory: ContractFactory;
-let uniswapV2MockFactory: ContractFactory;
-let alpacaStakingPoolMock: ContractFactory;
-let alpacaVaultAdapter: ContractFactory;
 
 describe("Formation", () => {
   let signers: Signer[];
@@ -52,10 +43,6 @@ describe("Formation", () => {
     YearnVaultAdapterFactory = await ethers.getContractFactory("YearnVaultAdapter");
     YearnVaultMockFactory = await ethers.getContractFactory("YearnVaultMock");
     YearnControllerMockFactory = await ethers.getContractFactory("YearnControllerMock");
-    ibBUSDMockFactory = await ethers.getContractFactory("IbBUSDMock");
-    uniswapV2MockFactory = await ethers.getContractFactory("UniswapV2Mock");
-    alpacaStakingPoolMock = await ethers.getContractFactory("AlpacaStakingPoolMock");
-    alpacaVaultAdapter = await ethers.getContractFactory("AlpacaVaultAdapter");
   });
 
   beforeEach(async () => {
@@ -1003,161 +990,5 @@ describe("Formation", () => {
         expect(initRewardsBal).equal(endRewardsBal);
       })
     })
-  });
-
-  describe("Alpaca vault", async () => {
-    let deployer: Signer;
-    let governance: Signer;
-    let sentinel: Signer;
-    let transmuter: Signer;
-    let rewards: Signer;
-    let harvestFee = 1000;
-    let user: Signer;
-    let nUsd: NToken;
-    let bUsd: Erc20Mock;
-    let alpaca: Erc20Mock;
-    let wBnb: Erc20Mock;
-    let ibBusd: IbBusdMock;
-    let uniswapV2: UniswapV2Mock;
-    let alpacaStaking: AlpacaStakingPoolMock;
-    let adapter: AlpacaVaultAdapter;
-    let formation: Formation;
-    
-    beforeEach(async () => {
-      [deployer, governance, sentinel, transmuter, rewards, ...signers] = signers;
-      user = signers[1];
-      nUsd = (await NUSDFactory.connect(deployer).deploy()) as NToken;
-      bUsd = (await ERC20MockFactory.connect(deployer).deploy(
-        "BUSD",
-        "BUSD",
-        18
-      )) as Erc20Mock;
-      alpaca = (await ERC20MockFactory.connect(deployer).deploy(
-        "Alpaca",
-        "Alpaca",
-        18
-      )) as Erc20Mock;
-      wBnb = (await ERC20MockFactory.connect(deployer).deploy(
-        "WBNB",
-        "WBNB",
-        18
-      )) as Erc20Mock;
-      ibBusd = (await ibBUSDMockFactory.connect(deployer).deploy(
-        bUsd.address
-      )) as IbBusdMock;
-      uniswapV2 = (await uniswapV2MockFactory.connect(deployer).deploy()) as UniswapV2Mock;
-      alpacaStaking = (await alpacaStakingPoolMock.connect(deployer).deploy(
-        ibBusd.address,
-        alpaca.address,
-        parseEther("1")
-      )) as AlpacaStakingPoolMock;
-      adapter = (await alpacaVaultAdapter.connect(deployer).deploy(
-        ibBusd.address,
-        await governance.getAddress(),
-        uniswapV2.address,
-        alpacaStaking.address,
-        alpaca.address,
-        wBnb.address,
-        0
-      )) as AlpacaVaultAdapter;
-    });
-
-    context("test deposit/withdraw of ibBusd", async () => {
-      it("deposit/withdraw", async () => {
-        const userAddr = await user.getAddress();
-        const amount = ethers.utils.parseEther("100");
-        await bUsd.mint(userAddr, amount);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
-        await bUsd.connect(user).approve(ibBusd.address, amount);
-        await ibBusd.connect(user).deposit(amount);
-        expect(await ibBusd.balanceOf(userAddr)).to.be.eq(amount);
-        expect(await ibBusd.totalSupply()).to.be.eq(amount);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(0);
-        expect(await bUsd.balanceOf(ibBusd.address)).to.be.eq(amount);
-
-        await ibBusd.connect(user).withdraw(amount);
-        expect(await ibBusd.balanceOf(userAddr)).to.be.eq(0);
-        expect(await ibBusd.totalSupply()).to.be.eq(0);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
-      })
-    });
-
-    context("test swapExactTokensForTokens of uniswapV2", async () => {
-      it("swapExactTokensForTokens 1:1", async () => {
-        const userAddr = await user.getAddress();
-        const amount = ethers.utils.parseEther("100");
-        await bUsd.mint(userAddr, amount);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
-
-        await wBnb.mint(uniswapV2.address, amount);
-        expect(await wBnb.balanceOf(uniswapV2.address)).to.be.eq(amount);
-
-        await bUsd.connect(user).approve(uniswapV2.address, amount);
-        await uniswapV2.connect(user).swapExactTokensForTokens(amount, amount, [
-          bUsd.address,
-          wBnb.address
-        ], userAddr,Math.floor((new Date()).getTime() / 1000) + 1000)
-
-        expect(await wBnb.balanceOf(userAddr)).to.be.eq(amount);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(0);
-        expect(await wBnb.balanceOf(uniswapV2.address)).to.be.eq(0);
-        expect(await bUsd.balanceOf(uniswapV2.address)).to.be.eq(amount);
-      })
-    });
-
-    context("test deposit/withdraw/harvest of alpacaStakingPool", async () => {
-      it("deposit/withdraw/harvest", async () => {
-        const userAddr = await user.getAddress();
-        const amount = ethers.utils.parseEther("100");
-        await bUsd.mint(userAddr, amount);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
-        await bUsd.connect(user).approve(ibBusd.address, amount);
-        await ibBusd.connect(user).deposit(amount);
-        expect(await ibBusd.balanceOf(userAddr)).to.be.eq(amount);
-        expect(await ibBusd.totalSupply()).to.be.eq(amount);
-        expect(await bUsd.balanceOf(userAddr)).to.be.eq(0);
-        expect(await bUsd.balanceOf(ibBusd.address)).to.be.eq(amount);
-
-        await ibBusd.connect(user).approve(alpacaStaking.address, amount);
-        await alpacaStaking.connect(user).deposit(userAddr, 0, amount);
-        expect(await ibBusd.balanceOf(userAddr)).to.be.eq(0);
-        expect(await alpacaStaking.totalDeposited()).to.be.eq(amount);
-
-        await alpacaStaking.connect(user).harvest(0);
-        expect(await alpaca.balanceOf(userAddr)).to.be.gt(0);
-
-        await alpacaStaking.connect(user).withdraw(userAddr, 0, amount);
-        expect(await ibBusd.balanceOf(userAddr)).to.be.eq(amount);
-        expect(await alpacaStaking.totalDeposited()).to.be.eq(0);
-      });
-    });
-
-    context("from the active vault", () => {
-      it("should work", async () => {
-        formation = await FormationFactory
-          .connect(deployer)
-          .deploy(
-            bUsd.address,
-            nUsd.address,
-            await governance.getAddress(),
-            await sentinel.getAddress(),
-            DEFAULT_FLUSH_ACTIVATOR
-          ) as Formation;
-        await formation
-          .connect(governance)
-          .setTransmuter(await transmuter.getAddress());
-        await formation
-          .connect(governance)
-          .setRewards(await rewards.getAddress());
-        await formation.connect(governance).setHarvestFee(harvestFee);
-        const userAddr = await user.getAddress();
-        const amount = ethers.utils.parseEther("100");
-        await bUsd.mint(userAddr, amount);
-        await bUsd.connect(user).approve(formation.address, amount);
-        await formation.connect(governance).initialize(adapter.address);
-        await formation.connect(user).deposit(amount);
-        await formation.flush();
-      });
-    });
   });
 });

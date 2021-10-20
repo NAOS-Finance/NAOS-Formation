@@ -52,7 +52,7 @@ describe("TransmuterUSDV2", () => {
     TransmuterV2Factory = await ethers.getContractFactory("TransmuterV2");
     ERC20MockFactory = await ethers.getContractFactory("ERC20Mock");
     NUSDFactory = await ethers.getContractFactory("NToken");
-    FormationFactory = await ethers.getContractFactory("FormationUSD");
+    FormationFactory = await ethers.getContractFactory("FormationV2");
     VaultAdapterMockFactory = await ethers.getContractFactory(
       "VaultAdapterMockWithIndirection"
     );

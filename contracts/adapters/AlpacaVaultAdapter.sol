@@ -5,7 +5,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {FixedPointMath} from "../libraries/FixedPointMath.sol";
 import {IDetailedERC20} from "../interfaces/IDetailedERC20.sol";
-import {IVaultAdapter} from "../interfaces/IVaultAdapter.sol";
+import {IVaultAdapterV2} from "../interfaces/IVaultAdapterV2.sol";
 import {IbBUSDToken} from "../interfaces/IbBUSDToken.sol";
 import {IAlpacaPool} from "../interfaces/IAlpacaPool.sol";
 import {IUniswapV2Router01, IUniswapV2Router02} from "../interfaces/IUniswapV2Router.sol";
@@ -13,7 +13,7 @@ import {IUniswapV2Router01, IUniswapV2Router02} from "../interfaces/IUniswapV2Ro
 /// @title AlpacaVaultAdapter
 ///
 /// @dev A vault adapter implementation which wraps an alpaca vault.
-contract AlpacaVaultAdapter is IVaultAdapter {
+contract AlpacaVaultAdapter is IVaultAdapterV2 {
   using FixedPointMath for FixedPointMath.uq192x64;
   using SafeERC20 for IDetailedERC20;
   using SafeMath for uint256;
@@ -122,20 +122,35 @@ contract AlpacaVaultAdapter is IVaultAdapter {
     // withdraw
     vault.withdraw(_tokensToShares(_amount));
 
-    // sell alpaca
+    // transfer all the busd in adapter to yum
+    busdToken.transfer(_recipient, busdToken.balanceOf(address(this)));
+  }
+
+  /// @dev Indirect withdraws tokens from the vault to the recipient.
+  ///
+  /// This function reverts if the caller is not the admin.
+  ///
+  /// @param _recipient the account to withdraw the tokes to.
+  /// @param _amount    the amount of tokens to withdraw.
+  function indirectWithdraw(address _recipient, uint256 _amount) external override onlyAdmin {
+    // unstake
+    stakingPool.withdraw(address(this), stakingPoolId, _tokensToShares(_amount));
+
     // withdraw accumulated ibusd from collector harvest
     if(vault.balanceOf(address(this)) > 0){
       vault.withdraw(vault.balanceOf(address(this)));
     }
 
     stakingPool.harvest(stakingPoolId);
-    uniV2Router.swapExactTokensForTokens(alpacaToken.balanceOf(address(this)),
-                                          0,
-                                          path,
-                                          address(this),
-                                          block.timestamp+800);
+    uniV2Router
+      .swapExactTokensForTokens(alpacaToken.balanceOf(address(this)),
+        0,
+        path,
+        address(this),
+        block.timestamp + 800
+      );
 
-    // transfer all the busd in adapter to yum
+    // transfer all the busd in adapter to user
     busdToken.transfer(_recipient, busdToken.balanceOf(address(this)));
   }
 
