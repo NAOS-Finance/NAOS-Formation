@@ -2,13 +2,11 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {IDetailedERC20} from "../interfaces/IDetailedERC20.sol";
 import {IMintableERC20} from "../interfaces/IMintableERC20.sol";
 
-contract AlpacaStakingPoolMock is ERC20 {
+contract AlpacaStakingPoolMock {
     using SafeERC20 for IDetailedERC20;
     using SafeERC20 for IMintableERC20;
     using SafeMath for uint256;
@@ -46,7 +44,7 @@ contract AlpacaStakingPoolMock is ERC20 {
 
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
 
-    constructor(IDetailedERC20 _token, IMintableERC20 _rewardToken, uint256 _rewardPerBlock) public ERC20("ibBUSD Mock", "ibBUSDMOCK") {
+    constructor(IDetailedERC20 _token, IMintableERC20 _rewardToken, uint256 _rewardPerBlock) public {
         token = _token;
         rewardToken = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
@@ -114,7 +112,7 @@ contract AlpacaStakingPoolMock is ERC20 {
         if (block.number <= lastRewardBlock) {
             return;
         }
-        uint256 lpSupply = IERC20(token).balanceOf(address(this));
+        uint256 lpSupply = IDetailedERC20(token).balanceOf(address(this));
         if (lpSupply == 0) {
             lastRewardBlock = block.number;
             return;
