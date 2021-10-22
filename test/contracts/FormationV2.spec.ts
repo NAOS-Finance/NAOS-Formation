@@ -18,6 +18,9 @@ import { UniswapV2Mock } from "../../types/UniswapV2Mock";
 import { AlpacaStakingPoolMock } from "../../types/AlpacaStakingPoolMock";
 import { AlpacaVaultAdapter } from "../../types/AlpacaVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
+import { EllipsisPoolMock } from "../../types/EllipsisPoolMock";
+import { I3EsPoolMock } from "../../types/I3EsPoolMock";
+import { EllipsisVaultAdapter } from "../../types/EllipsisVaultAdapter";
 const {parseEther, formatEther, parseUnits} = utils;
 
 chai.use(solidity);
@@ -36,6 +39,9 @@ let ibBUSDMockFactory: ContractFactory;
 let uniswapV2MockFactory: ContractFactory;
 let alpacaStakingPoolMock: ContractFactory;
 let alpacaVaultAdapter: ContractFactory;
+let ellipsisPoolMockFactory: ContractFactory;
+let threeesPoolMockFactory: ContractFactory;
+let ellipsisVaultAdapterFactory: ContractFactory;
 
 var USDT_CONST = 1000000000000;
 
@@ -54,6 +60,9 @@ describe("FormationV2", () => {
     uniswapV2MockFactory = await ethers.getContractFactory("UniswapV2Mock");
     alpacaStakingPoolMock = await ethers.getContractFactory("AlpacaStakingPoolMock");
     alpacaVaultAdapter = await ethers.getContractFactory("AlpacaVaultAdapter");
+    ellipsisPoolMockFactory = await ethers.getContractFactory("EllipsisPoolMock");
+    threeesPoolMockFactory = await ethers.getContractFactory("I3ESPoolMock");
+    ellipsisVaultAdapterFactory = await ethers.getContractFactory("EllipsisVaultAdapter");
   });
 
   beforeEach(async () => {
@@ -1175,6 +1184,149 @@ describe("FormationV2", () => {
         await alpacaStaking.connect(user).withdraw(userAddr, 0, amount);
         expect(await ibBusd.balanceOf(userAddr)).to.be.eq(amount);
         expect(await alpacaStaking.totalDeposited()).to.be.eq(0);
+      });
+    });
+
+    context("from the active vault", () => {
+      it("should work", async () => {
+        formation = await FormationFactory
+          .connect(deployer)
+          .deploy(
+            bUsd.address,
+            nUsd.address,
+            await governance.getAddress(),
+            await sentinel.getAddress(),
+            DEFAULT_FLUSH_ACTIVATOR
+          ) as FormationV2;
+        await formation
+          .connect(governance)
+          .setTransmuter(await transmuter.getAddress());
+        await formation
+          .connect(governance)
+          .setRewards(await rewards.getAddress());
+        await formation.connect(governance).setHarvestFee(harvestFee);
+        const userAddr = await user.getAddress();
+        const amount = ethers.utils.parseEther("100");
+        await bUsd.mint(userAddr, amount);
+        await bUsd.connect(user).approve(formation.address, amount);
+        await formation.connect(governance).initialize(adapter.address);
+        await formation.connect(user).deposit(amount);
+        await formation.flush();
+      });
+    });
+  });
+
+  describe("Ellipsis vault", async () => {
+    let deployer: Signer;
+    let governance: Signer;
+    let sentinel: Signer;
+    let transmuter: Signer;
+    let rewards: Signer;
+    let harvestFee = 1000;
+    let user: Signer;
+    let nUsd: NToken;
+    let bUsd: Erc20Mock;
+    let ellipsis: Erc20Mock;
+    let wBnb: Erc20Mock;
+    let threees: Erc20Mock;
+    let threeesPool: I3EsPoolMock;
+    let ellipsisStaking: EllipsisPoolMock;
+    let uniswapV2: UniswapV2Mock;
+    let adapter: EllipsisVaultAdapter;
+    let formation: FormationV2;
+    
+    beforeEach(async () => {
+      [deployer, governance, sentinel, transmuter, rewards, ...signers] = signers;
+      user = signers[1];
+      nUsd = (await NUSDFactory.connect(deployer).deploy()) as NToken;
+      bUsd = (await ERC20MockFactory.connect(deployer).deploy(
+        "BUSD",
+        "BUSD",
+        18
+      )) as Erc20Mock;
+      ellipsis = (await ERC20MockFactory.connect(deployer).deploy(
+        "Ellipsis",
+        "Ellipsis",
+        18
+      )) as Erc20Mock;
+      threees = (await ERC20MockFactory.connect(deployer).deploy(
+        "3ES",
+        "3ES",
+        18
+      )) as Erc20Mock;
+      wBnb = (await ERC20MockFactory.connect(deployer).deploy(
+        "WBNB",
+        "WBNB",
+        18
+      )) as Erc20Mock;
+      threeesPool = (await threeesPoolMockFactory.connect(deployer).deploy(
+        threees.address,
+        [0, 1, 2],
+        [bUsd.address, bUsd.address, bUsd.address]
+      )) as I3EsPoolMock;
+      uniswapV2 = (await uniswapV2MockFactory.connect(deployer).deploy()) as UniswapV2Mock;
+      ellipsisStaking = (await ellipsisPoolMockFactory.connect(deployer).deploy(
+        threees.address,
+        ellipsis.address,
+        parseEther("1")
+      )) as EllipsisPoolMock;
+      adapter = (await ellipsisVaultAdapterFactory.connect(deployer).deploy(
+        threeesPool.address,
+        await governance.getAddress(),
+        uniswapV2.address,
+        ellipsisStaking.address,
+        threees.address,
+        ellipsis.address,
+        wBnb.address,
+        1,
+        0
+      )) as EllipsisVaultAdapter;
+    });
+
+    context("test add_liquidity/remove_liquidity of 3es", async () => {
+      it("add_liquidity/remove_liquidity", async () => {
+        const userAddr = await user.getAddress();
+        const amount = ethers.utils.parseEther("100");
+        await bUsd.mint(userAddr, amount);
+        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
+        await bUsd.connect(user).approve(threeesPool.address, amount);
+        await threeesPool.connect(user).add_liquidity([amount, 0, 0], amount);
+        expect(await threees.balanceOf(userAddr)).to.be.eq(amount);
+        expect(await threees.totalSupply()).to.be.eq(amount);
+        expect(await bUsd.balanceOf(userAddr)).to.be.eq(0);
+        expect(await bUsd.balanceOf(threeesPool.address)).to.be.eq(amount);
+
+        await threeesPool.connect(user).remove_liquidity_one_coin(amount, 0, amount);
+        expect(await threees.balanceOf(userAddr)).to.be.eq(0);
+        expect(await threees.totalSupply()).to.be.eq(0);
+        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
+      })
+    });
+
+    context("test deposit/withdraw/harvest of ellipsisStakingPool", async () => {
+      it("deposit/withdraw/harvest", async () => {
+        const userAddr = await user.getAddress();
+        const amount = ethers.utils.parseEther("100");
+        await bUsd.mint(userAddr, amount);
+        expect(await bUsd.balanceOf(userAddr)).to.be.eq(amount);
+        await bUsd.connect(user).approve(threeesPool.address, amount);
+        await threeesPool.connect(user).add_liquidity([amount, 0, 0], amount);
+        expect(await threees.balanceOf(userAddr)).to.be.eq(amount);
+        expect(await threees.totalSupply()).to.be.eq(amount);
+        expect(await bUsd.balanceOf(userAddr)).to.be.eq(0);
+        expect(await bUsd.balanceOf(threeesPool.address)).to.be.eq(amount);
+
+        await threees.connect(user).approve(ellipsisStaking.address, amount);
+        await ellipsisStaking.connect(user).deposit(0, amount);
+        expect(await threees.balanceOf(userAddr)).to.be.eq(0);
+        expect(await ellipsisStaking.totalDeposited()).to.be.eq(amount);
+
+        await ellipsisStaking.connect(user).claim(0);
+        expect(await ellipsis.balanceOf(userAddr)).to.be.gt(0);
+
+        await ellipsisStaking.connect(user).withdraw(0, amount);
+        expect(await threees.balanceOf(userAddr)).to.be.eq(amount);
+        expect(await ellipsisStaking.totalDeposited()).to.be.eq(0);
       });
     });
 

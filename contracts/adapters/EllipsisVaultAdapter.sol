@@ -105,13 +105,22 @@ contract EllipsisVaultAdapter is IVaultAdapterV2 {
     return _sharesToTokens(amount);
   }
 
+  /// @dev Gets the params that vault used.
+  ///
+  /// @return the params.
+  function getParams(uint256 _amount) internal view returns (uint256[3] memory) {
+    uint256[3] memory params;
+    params[assetId] = _amount;
+    return params;
+  }
+
   /// @dev Deposits tokens into the vault.
   ///
   /// @param _amount the amount of tokens to deposit into the vault.
   function deposit(uint256 _amount) external override {
 
     // deposit to vault
-    uint256[3] memory params = [_amount, 0, 0];
+    uint256[3] memory params = getParams(_amount);
     vault.add_liquidity(params, _tokensToShares(_amount));
     // stake to pool
     stakingPool.deposit(stakingPoolId, threeesToken.balanceOf(address(this)));
@@ -148,7 +157,7 @@ contract EllipsisVaultAdapter is IVaultAdapterV2 {
     // withdraw accumulated ibusd from collector harvest
     if(threeesToken.balanceOf(address(this)) > 0){
       uint256 threeesBalance = threeesToken.balanceOf(address(this));
-      vault.remove_liquidity_one_coin(threeesBalance, int128(assetId), _sharesToTokens(threeesBalance));
+      vault.remove_liquidity_one_coin(threeesBalance, int128(assetId), _tokensToShares(threeesBalance));
     }
 
     stakingPool.claim(stakingPoolId);
@@ -169,7 +178,7 @@ contract EllipsisVaultAdapter is IVaultAdapterV2 {
     // busd to vault
     IDetailedERC20(vault.coins(assetId)).safeApprove(address(vault), uint256(-1));
     // vault to stakingPool
-    IDetailedERC20(address(vault)).safeApprove(address(stakingPool), uint256(-1));
+    threeesToken.safeApprove(address(stakingPool), uint256(-1));
     // ellipsis to uniV2Router
     ellipsisToken.safeApprove(address(uniV2Router), uint256(-1));
   }
@@ -190,8 +199,7 @@ contract EllipsisVaultAdapter is IVaultAdapterV2 {
   ///
   /// @return the number of shares the tokens are worth.
   function _tokensToShares(uint256 _tokensAmount) internal view returns (uint256) {
-    uint256[3] memory params;
-    params[assetId] = _tokensAmount;
+    uint256[3] memory params = getParams(_tokensAmount);
     return vault.calc_token_amount(params, true);
   }
 }
