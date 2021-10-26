@@ -10,10 +10,10 @@ import {IDetailedERC20} from "../interfaces/IDetailedERC20.sol";
 import {IyVaultV2} from "../interfaces/IyVaultV2.sol";
 import {YearnVaultAdapter} from "./YearnVaultAdapter.sol";
 
-/// @title YearnVaultAdapterWithIndirection
+/// @title YearnVaultAdapterV2
 ///
 /// @dev A vault adapter implementation which wraps a yEarn vault.
-contract YearnVaultAdapterWithIndirection is YearnVaultAdapter {
+contract YearnVaultAdapterV2 is YearnVaultAdapter {
     using FixedPointMath for FixedPointMath.uq192x64;
     using SafeERC20 for IDetailedERC20;
     using SafeERC20 for IyVaultV2;

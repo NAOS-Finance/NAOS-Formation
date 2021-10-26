@@ -10,7 +10,7 @@ import { Erc20Mock } from "../../types/Erc20Mock";
 import { Erc20MockUsd } from "../../types/Erc20MockUsd";
 import { ZERO_ADDRESS, DEFAULT_FLUSH_ACTIVATOR } from "../utils/helpers";
 import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
-import { YearnVaultAdapterWithIndirection } from "../../types/YearnVaultAdapterWithIndirection";
+import { YearnVaultAdapterV2 } from "../../types/YearnVaultAdapterV2";
 import { YearnVaultMockUsd } from "../../types/YearnVaultMockUsd";
 import { YearnControllerMock } from "../../types/YearnControllerMock";
 import { IbBusdMock } from "../../types/IbBUSDMock";
@@ -29,7 +29,7 @@ let FormationFactory: ContractFactory;
 let NUSDFactory: ContractFactory;
 let ERC20MockFactory: ContractFactory;
 let TransmuterFactory: ContractFactory;
-let YearnVaultAdapterWithIndirectionFactory: ContractFactory;
+let YearnVaultAdapterV2Factory: ContractFactory;
 let YearnVaultMockUsdFactory: ContractFactory;
 let YearnControllerMockFactory: ContractFactory;
 let ibBUSDMockFactory: ContractFactory;
@@ -47,7 +47,7 @@ describe("FormationV2", () => {
     TransmuterFactory = await ethers.getContractFactory("Transmuter");
     NUSDFactory = await ethers.getContractFactory("NToken");
     ERC20MockFactory = await ethers.getContractFactory("ERC20MockUSD");
-    YearnVaultAdapterWithIndirectionFactory = await ethers.getContractFactory("YearnVaultAdapterWithIndirection");
+    YearnVaultAdapterV2Factory = await ethers.getContractFactory("YearnVaultAdapterV2");
     YearnVaultMockUsdFactory = await ethers.getContractFactory("YearnVaultMockUSD");
     YearnControllerMockFactory = await ethers.getContractFactory("YearnControllerMock");
     ibBUSDMockFactory = await ethers.getContractFactory("IbBUSDMock");
@@ -358,7 +358,7 @@ describe("FormationV2", () => {
     let token: Erc20MockUsd;
     let nUsd: NToken;
     let formation: FormationV2;
-    let adapter: YearnVaultAdapterWithIndirection;
+    let adapter: YearnVaultAdapterV2;
     let newAdapter: YearnVaultAdapter;
     let controllerMock: YearnControllerMock;
     let vaultMock: YearnVaultMockUsd;
@@ -422,9 +422,9 @@ describe("FormationV2", () => {
         vaultMock = await YearnVaultMockUsdFactory
         .connect(deployer)
         .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-        adapter = await YearnVaultAdapterWithIndirectionFactory
+        adapter = await YearnVaultAdapterV2Factory
         .connect(deployer)
-        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
 
         await formation.connect(governance).initialize(adapter.address);
       });
@@ -481,9 +481,9 @@ describe("FormationV2", () => {
 
         context("when conditions are met", () => {
           beforeEach(async () => {
-            newAdapter = await YearnVaultAdapterWithIndirectionFactory
+            newAdapter = await YearnVaultAdapterV2Factory
             .connect(deployer)
-            .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+            .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
             await formation.migrate(newAdapter.address);
           });
 
@@ -514,9 +514,9 @@ describe("FormationV2", () => {
           vaultMock = await YearnVaultMockUsdFactory
             .connect(deployer)
             .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-          adapter = await YearnVaultAdapterWithIndirectionFactory
+          adapter = await YearnVaultAdapterV2Factory
             .connect(deployer)
-            .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+            .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
           await token.mint(await deployer.getAddress(), parseEther("10000"));
           await token.approve(vaultMock.address, parseEther("10000"));
           await formation.connect(governance).initialize(adapter.address)
@@ -557,13 +557,13 @@ describe("FormationV2", () => {
           .connect(deployer)
           .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
 
-          inactiveAdapter = await YearnVaultAdapterWithIndirectionFactory
+          inactiveAdapter = await YearnVaultAdapterV2Factory
           .connect(deployer)
-          .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+          .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
 
-          activeAdapter = await YearnVaultAdapterWithIndirectionFactory
+          activeAdapter = await YearnVaultAdapterV2Factory
           .connect(deployer)
-          .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+          .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
 
           await formation.connect(governance).initialize(inactiveAdapter.address);
           await token.mint(await minter.getAddress(), depositAmt);
@@ -606,9 +606,9 @@ describe("FormationV2", () => {
           vaultMock = await YearnVaultMockUsdFactory
             .connect(deployer)
             .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-            adapter = await YearnVaultAdapterWithIndirectionFactory
+            adapter = await YearnVaultAdapterV2Factory
             .connect(deployer)
-            .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+            .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
            
 
           await formation.connect(governance).initialize(adapter.address);
@@ -639,13 +639,13 @@ describe("FormationV2", () => {
           .connect(deployer)
           .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
 
-          inactiveAdapter = await YearnVaultAdapterWithIndirectionFactory
+          inactiveAdapter = await YearnVaultAdapterV2Factory
           .connect(deployer)
-          .deploy(inactivevaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+          .deploy(inactivevaultMock.address, formation.address) as YearnVaultAdapterV2;
 
-          activeAdapter = await YearnVaultAdapterWithIndirectionFactory
+          activeAdapter = await YearnVaultAdapterV2Factory
           .connect(deployer)
-          .deploy(activevaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+          .deploy(activevaultMock.address, formation.address) as YearnVaultAdapterV2;
 
 
             await formation.connect(governance).initialize(inactiveAdapter.address);
@@ -676,9 +676,9 @@ describe("FormationV2", () => {
       vaultMock = await YearnVaultMockUsdFactory
         .connect(deployer)
         .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-        adapter = await YearnVaultAdapterWithIndirectionFactory
+        adapter = await YearnVaultAdapterV2Factory
         .connect(deployer)
-        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
         await formation.connect(governance).initialize(adapter.address);
         await formation
           .connect(governance)
@@ -816,9 +816,9 @@ describe("FormationV2", () => {
       vaultMock = await YearnVaultMockUsdFactory
         .connect(deployer)
         .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-        adapter = await YearnVaultAdapterWithIndirectionFactory
+        adapter = await YearnVaultAdapterV2Factory
         .connect(deployer)
-        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
         await formation.connect(governance).initialize(adapter.address);
         await formation
           .connect(governance)
@@ -924,9 +924,9 @@ describe("FormationV2", () => {
       vaultMock = await YearnVaultMockUsdFactory
         .connect(deployer)
         .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-        adapter = await YearnVaultAdapterWithIndirectionFactory
+        adapter = await YearnVaultAdapterV2Factory
         .connect(deployer)
-        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
 
         await formation.connect(governance).initialize(adapter.address);
 
@@ -1004,9 +1004,9 @@ describe("FormationV2", () => {
       vaultMock = await YearnVaultMockUsdFactory
         .connect(deployer)
         .deploy(token.address, controllerMock.address) as YearnVaultMockUsd;
-      adapter = await YearnVaultAdapterWithIndirectionFactory
+      adapter = await YearnVaultAdapterV2Factory
         .connect(deployer)
-        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterWithIndirection;
+        .deploy(vaultMock.address, formation.address) as YearnVaultAdapterV2;
 
         await nUsd.connect(deployer).setWhitelist(formation.address, true);
         await formation.connect(governance).initialize(adapter.address);
