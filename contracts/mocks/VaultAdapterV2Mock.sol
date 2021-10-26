@@ -6,7 +6,7 @@ import {ERC20Mock} from "./ERC20Mock.sol";
 
 import "../interfaces/IVaultAdapter.sol";
 
-contract VaultAdapterMockWithIndirection is IVaultAdapter {
+contract VaultAdapterV2Mock is IVaultAdapter {
     using SafeERC20 for IDetailedERC20;
 
     IDetailedERC20 private _token;
