@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 import { ContractFactory, Signer, BigNumber, utils } from "ethers";
 import { NToken } from "../../types/NToken";
 import { Formation } from "../../types/Formation";
-import { VaultAdapterMockWithIndirection } from "../../types/VaultAdapterMockWithIndirection";
+import { VaultAdapterV2Mock } from "../../types/VaultAdapterV2Mock";
 
 import { Erc20Mock } from "../../types/Erc20Mock";
 import { getAddress, parseEther, formatEther ,parseUnits} from "ethers/lib/utils";
@@ -36,8 +36,8 @@ describe("TransmuterUSDV2", () => {
   let mockFormation: Signer;
   let token: Erc20Mock;
   let transmuter: TransmuterV2;
-  let adapter: VaultAdapterMockWithIndirection;
-  let transVaultAdaptor: VaultAdapterMockWithIndirection;
+  let adapter: VaultAdapterV2Mock;
+  let transVaultAdaptor: VaultAdapterV2Mock;
   let nUsd: NToken;
   let harvestFee = 1000;
   let ceilingAmt = utils.parseEther("10000000");
@@ -52,9 +52,9 @@ describe("TransmuterUSDV2", () => {
     TransmuterV2Factory = await ethers.getContractFactory("TransmuterV2");
     ERC20MockFactory = await ethers.getContractFactory("ERC20Mock");
     NUSDFactory = await ethers.getContractFactory("NToken");
-    FormationFactory = await ethers.getContractFactory("FormationUSD");
+    FormationFactory = await ethers.getContractFactory("FormationV2");
     VaultAdapterMockFactory = await ethers.getContractFactory(
-      "VaultAdapterMockWithIndirection"
+      "VaultAdapterV2Mock"
     );
   });
 
@@ -102,7 +102,7 @@ describe("TransmuterUSDV2", () => {
     )) as TransmuterV2;
     transVaultAdaptor = (await VaultAdapterMockFactory.connect(deployer).deploy(
         token.address
-      )) as VaultAdapterMockWithIndirection;
+      )) as VaultAdapterV2Mock;
     await transmuter.connect(governance).setKeepers(keeprs, keeprStates);
     await transmuter.connect(governance).setRewards(await rewards.getAddress());
     await transmuter.connect(governance).initialize(transVaultAdaptor.address);
@@ -115,7 +115,7 @@ describe("TransmuterUSDV2", () => {
 
     adapter = (await VaultAdapterMockFactory.connect(deployer).deploy(
       token.address
-    )) as VaultAdapterMockWithIndirection;
+    )) as VaultAdapterV2Mock;
     await formation.connect(governance).initialize(adapter.address);
     await formation
       .connect(governance)
@@ -837,7 +837,7 @@ describe("TransmuterUSDV2", () => {
 
         let newVault = (await VaultAdapterMockFactory.connect(deployer).deploy(
           token.address
-        )) as VaultAdapterMockWithIndirection;
+        )) as VaultAdapterV2Mock;
 
         await transmuter.connect(governance).migrate(newVault.address);
         await transmuter.connect(sentinel).recallAllFundsFromVault(0);
@@ -892,7 +892,7 @@ describe("TransmuterUSDV2", () => {
 
         let newVault = (await VaultAdapterMockFactory.connect(deployer).deploy(
           token.address
-        )) as VaultAdapterMockWithIndirection;
+        )) as VaultAdapterV2Mock;
         await transmuter.connect(governance).migrate(newVault.address);
         await transmuter.connect(sentinel).recallFundsFromVault(0, recallAmt);
 
@@ -936,7 +936,7 @@ describe("TransmuterUSDV2", () => {
     let stakeAmt = parseEther("50");
     let distributeAmt = parseUnits("100",6);
     let newTransmuter: TransmuterV2;
-    let newTransVaultAdaptor: VaultAdapterMockWithIndirection;
+    let newTransVaultAdaptor: VaultAdapterV2Mock;
 
     beforeEach(async () => {
       newTransmuter = (await TransmuterV2Factory.connect(deployer).deploy(
@@ -946,7 +946,7 @@ describe("TransmuterUSDV2", () => {
       )) as TransmuterV2;
       newTransVaultAdaptor = (await VaultAdapterMockFactory.connect(deployer).deploy(
         token.address
-      )) as VaultAdapterMockWithIndirection;
+      )) as VaultAdapterV2Mock;
       await newTransmuter.connect(governance).setRewards(await rewards.getAddress());
       await newTransmuter.connect(governance).setKeepers(keeprs, keeprStates);
       await newTransmuter.connect(governance).initialize(newTransVaultAdaptor.address);

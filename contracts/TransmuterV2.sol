@@ -5,16 +5,16 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IERC20Burnable.sol";
-import {YearnVaultAdapterWithIndirection} from "./adapters/YearnVaultAdapterWithIndirection.sol";
-import {VaultWithIndirection} from "./libraries/formation/VaultWithIndirection.sol";
+import {VaultV2} from "./libraries/formation/VaultV2.sol";
 import {ITransmuter} from "./interfaces/ITransmuter.sol";
+import {IVaultAdapterV2} from "./interfaces/IVaultAdapterV2.sol";
 
 contract TransmuterV2 is Context {
     using SafeMath for uint256;
     using SafeERC20 for IERC20Burnable;
     using Address for address;
-    using VaultWithIndirection for VaultWithIndirection.Data;
-    using VaultWithIndirection for VaultWithIndirection.List;
+    using VaultV2 for VaultV2.Data;
+    using VaultV2 for VaultV2.List;
 
     address public constant ZERO_ADDRESS = address(0);
     uint256 public TRANSMUTATION_PERIOD;
@@ -75,11 +75,11 @@ contract TransmuterV2 is Context {
     address public rewards;
 
     /// @dev A mapping of adapter addresses to keep track of vault adapters that have already been added
-    mapping(YearnVaultAdapterWithIndirection => bool) public adapters;
+    mapping(IVaultAdapterV2 => bool) public adapters;
 
     /// @dev A list of all of the vaults. The last element of the list is the vault that is currently being used for
-    /// deposits and withdraws. VaultWithIndirections before the last element are considered inactive and are expected to be cleared.
-    VaultWithIndirection.List private _vaults;
+    /// deposits and withdraws. VaultV2s before the last element are considered inactive and are expected to be cleared.
+    VaultV2.List private _vaults;
 
     event GovernanceUpdated(address governance);
 
@@ -109,7 +109,7 @@ contract TransmuterV2 is Context {
 
     event PlantableMarginUpdated(uint256 plantableMargin);
 
-    event ActiveVaultUpdated(YearnVaultAdapterWithIndirection indexed adapter);
+    event ActiveVaultUpdated(IVaultAdapterV2 indexed adapter);
 
     event PauseUpdated(bool status);
 
@@ -561,7 +561,7 @@ contract TransmuterV2 is Context {
     /// This function checks that the transmuter and rewards have been set and sets up the active vault.
     ///
     /// @param _adapter the vault adapter of the active vault.
-    function initialize(YearnVaultAdapterWithIndirection _adapter) external onlyGov {
+    function initialize(IVaultAdapterV2 _adapter) external onlyGov {
         require(!initialized, "Transmuter: already initialized");
         require(rewards != ZERO_ADDRESS, "Transmuter: reward address should not be 0x0");
 
@@ -576,7 +576,7 @@ contract TransmuterV2 is Context {
     /// is not the token that this contract defines as the parent asset, or if the contract has not yet been initialized.
     ///
     /// @param _adapter the adapter for the vault the system will migrate to.
-    function migrate(YearnVaultAdapterWithIndirection _adapter) external onlyGov {
+    function migrate(IVaultAdapterV2 _adapter) external onlyGov {
         require(initialized, "Transmuter: not initialized.");
         _updateActiveVault(_adapter);
     }
@@ -587,13 +587,13 @@ contract TransmuterV2 is Context {
     /// is not the token that this contract defines as the parent asset, or if the contract has not yet been initialized.
     ///
     /// @param _adapter the adapter for the new active vault.
-    function _updateActiveVault(YearnVaultAdapterWithIndirection _adapter) internal {
-        require(_adapter != YearnVaultAdapterWithIndirection(ZERO_ADDRESS), "Transmuter: active vault address cannot be 0x0.");
+    function _updateActiveVault(IVaultAdapterV2 _adapter) internal {
+        require(address(_adapter) != address(0), "Transmuter: active vault address cannot be 0x0.");
         require(address(_adapter.token()) == token, "Transmuter.vault: token mismatch.");
         require(!adapters[_adapter], "Adapter already in use");
         adapters[_adapter] = true;
 
-        _vaults.push(VaultWithIndirection.Data({adapter: _adapter, totalDeposited: 0}));
+        _vaults.push(VaultV2.Data({adapter: _adapter, totalDeposited: 0}));
 
         emit ActiveVaultUpdated(_adapter);
     }
@@ -611,7 +611,7 @@ contract TransmuterV2 is Context {
     ///
     /// @return the vault adapter.
     function getVaultAdapter(uint256 _vaultId) external view returns (address) {
-        VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         return address(_vault.adapter);
     }
 
@@ -621,7 +621,7 @@ contract TransmuterV2 is Context {
     ///
     /// @return the total amount of deposited tokens.
     function getVaultTotalDeposited(uint256 _vaultId) external view returns (uint256) {
-        VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         return _vault.totalDeposited;
     }
 
@@ -649,7 +649,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param _vaultId the id of the vault from which to recall funds
     function _recallAllFundsFromVault(uint256 _vaultId) internal {
-        VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdrawAll(address(this));
         emit FundsRecalled(_vaultId, _withdrawnAmount, _decreasedValue);
     }
@@ -668,7 +668,7 @@ contract TransmuterV2 is Context {
     /// @param _vaultId the id of the vault from which to recall funds
     /// @param _amount the amount of funds to recall
     function _recallFundsFromVault(uint256 _vaultId, uint256 _amount) internal {
-        VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(address(this), _amount);
         emit FundsRecalled(_vaultId, _withdrawnAmount, _decreasedValue);
     }
@@ -691,7 +691,7 @@ contract TransmuterV2 is Context {
         if (bal > plantableThreshold.add(marginVal)) {
             uint256 plantAmt = bal - plantableThreshold;
             // if total funds above threshold, send funds to vault
-            VaultWithIndirection.Data storage _activeVault = _vaults.last();
+            VaultV2.Data storage _activeVault = _vaults.last();
             _activeVault.deposit(plantAmt);
         } else if (bal < plantableThreshold.sub(marginVal)) {
             // if total funds below threshold, recall funds from vault
@@ -707,7 +707,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param _recallAmt the amount to harvest from the active vault
     function _recallExcessFundsFromActiveVault(uint256 _recallAmt) internal {
-        VaultWithIndirection.Data storage _activeVault = _vaults.last();
+        VaultV2.Data storage _activeVault = _vaults.last();
         uint256 activeVaultVal = _activeVault.totalValue();
         if (activeVaultVal < _recallAmt) {
             _recallAmt = activeVaultVal;
@@ -767,7 +767,7 @@ contract TransmuterV2 is Context {
     ///
     /// @return the amount of funds that were harvested from the vault.
     function harvest(uint256 _vaultId) external onlyKeeper returns (uint256, uint256) {
-        VaultWithIndirection.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
 
         (uint256 _harvestedAmount, uint256 _decreasedValue) = _vault.harvest(rewards);
 

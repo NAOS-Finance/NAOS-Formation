@@ -13,14 +13,14 @@ import {FixedPointMath} from "./libraries/FixedPointMath.sol";
 import {ITransmuter} from "./interfaces/ITransmuter.sol";
 import {IMintableERC20} from "./interfaces/IMintableERC20.sol";
 import {IChainlink} from "./interfaces/IChainlink.sol";
-import {IVaultAdapter} from "./interfaces/IVaultAdapter.sol";
-import {Vault} from "./libraries/formation/Vault.sol";
+import {IVaultAdapterV2} from "./interfaces/IVaultAdapterV2.sol";
+import {VaultV2} from "./libraries/formation/VaultV2.sol";
 
-contract FormationUSD is ReentrancyGuard {
+contract FormationV2 is ReentrancyGuard {
     using CDP for CDP.Data;
     using FixedPointMath for FixedPointMath.uq192x64;
-    using Vault for Vault.Data;
-    using Vault for Vault.List;
+    using VaultV2 for VaultV2.Data;
+    using VaultV2 for VaultV2.List;
     using SafeERC20 for IMintableERC20;
     using SafeMath for uint256;
     using Address for address;
@@ -65,7 +65,7 @@ contract FormationUSD is ReentrancyGuard {
 
     event EmergencyExitUpdated(bool status);
 
-    event ActiveVaultUpdated(IVaultAdapter indexed adapter);
+    event ActiveVaultUpdated(IVaultAdapterV2 indexed adapter);
 
     event FundsHarvested(uint256 withdrawnAmount, uint256 decreasedValue);
 
@@ -127,7 +127,7 @@ contract FormationUSD is ReentrancyGuard {
 
     /// @dev A list of all of the vaults. The last element of the list is the vault that is currently being used for
     /// deposits and withdraws. Vaults before the last element are considered inactive and are expected to be cleared.
-    Vault.List private _vaults;
+    VaultV2.List private _vaults;
 
     /// @dev The address of the link oracle.
     address public _linkGasOracle;
@@ -139,7 +139,7 @@ contract FormationUSD is ReentrancyGuard {
     uint256 public oracleUpdateDelay;
 
     /// @dev A mapping of adapter addresses to keep track of vault adapters that have already been added
-    mapping(IVaultAdapter => bool) public adapters;
+    mapping(IVaultAdapterV2 => bool) public adapters;
 
     /// @dev The const number (10^n) to align the decimals in this system
     /// Eg. USDT(6 decimals), so the const number should be 10^(18 - 6) to make the number in this system 18 decimals
@@ -308,7 +308,7 @@ contract FormationUSD is ReentrancyGuard {
     /// This function checks that the transmuter and rewards have been set and sets up the active vault.
     ///
     /// @param _adapter the vault adapter of the active vault.
-    function initialize(IVaultAdapter _adapter) external onlyGov {
+    function initialize(IVaultAdapterV2 _adapter) external onlyGov {
         require(!initialized, "Formation: already initialized");
 
         require(transmuter != ZERO_ADDRESS, "Formation: cannot initialize transmuter address to 0x0");
@@ -325,7 +325,7 @@ contract FormationUSD is ReentrancyGuard {
     /// is not the token that this contract defines as the parent asset, or if the contract has not yet been initialized.
     ///
     /// @param _adapter the adapter for the vault the system will migrate to.
-    function migrate(IVaultAdapter _adapter) external expectInitialized onlyGov {
+    function migrate(IVaultAdapterV2 _adapter) external expectInitialized onlyGov {
         _updateActiveVault(_adapter);
     }
 
@@ -336,7 +336,7 @@ contract FormationUSD is ReentrancyGuard {
     /// @return the amount of funds that were harvested from the vault.
 
     function harvest(uint256 _vaultId) external expectInitialized returns (uint256, uint256) {
-        Vault.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
 
         (uint256 _harvestedAmount, uint256 _decreasedValue) = _vault.harvest(address(this));
 
@@ -390,7 +390,7 @@ contract FormationUSD is ReentrancyGuard {
         // the active vault is poisoned for any reason.
         require(!emergencyExit, "emergency pause enabled");
 
-        Vault.Data storage _activeVault = _vaults.last();
+        VaultV2.Data storage _activeVault = _vaults.last();
         uint256 _depositedAmount = _activeVault.depositAll();
 
         emit FundsFlushed(_depositedAmount);
@@ -539,8 +539,8 @@ contract FormationUSD is ReentrancyGuard {
     /// @param _vaultId the identifier of the vault.
     ///
     /// @return the vault adapter.
-    function getVaultAdapter(uint256 _vaultId) external view returns (IVaultAdapter) {
-        Vault.Data storage _vault = _vaults.get(_vaultId);
+    function getVaultAdapter(uint256 _vaultId) external view returns (IVaultAdapterV2) {
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         return _vault.adapter;
     }
 
@@ -550,7 +550,7 @@ contract FormationUSD is ReentrancyGuard {
     ///
     /// @return the total amount of deposited tokens.
     function getVaultTotalDeposited(uint256 _vaultId) external view returns (uint256) {
-        Vault.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         return _vault.totalDeposited;
     }
 
@@ -645,13 +645,13 @@ contract FormationUSD is ReentrancyGuard {
     /// is not the token that this contract defines as the parent asset, or if the contract has not yet been initialized.
     ///
     /// @param _adapter the adapter for the new active vault.
-    function _updateActiveVault(IVaultAdapter _adapter) internal {
-        require(_adapter != IVaultAdapter(ZERO_ADDRESS), "Formation: active vault address cannot be 0x0.");
+    function _updateActiveVault(IVaultAdapterV2 _adapter) internal {
+        require(_adapter != IVaultAdapterV2(ZERO_ADDRESS), "Formation: active vault address cannot be 0x0.");
         require(_adapter.token() == token, "Formation: token mismatch.");
         require(!adapters[_adapter], "Adapter already in use");
         adapters[_adapter] = true;
 
-        _vaults.push(Vault.Data({adapter: _adapter, totalDeposited: 0}));
+        _vaults.push(VaultV2.Data({adapter: _adapter, totalDeposited: 0}));
 
         emit ActiveVaultUpdated(_adapter);
     }
@@ -665,7 +665,7 @@ contract FormationUSD is ReentrancyGuard {
     function _recallFunds(uint256 _vaultId, uint256 _amount) internal returns (uint256, uint256) {
         require(emergencyExit || msg.sender == governance || _vaultId != _vaults.lastIndex(), "Formation: not an emergency, not governance, and user does not have permission to recall funds from active vault");
 
-        Vault.Data storage _vault = _vaults.get(_vaultId);
+        VaultV2.Data storage _vault = _vaults.get(_vaultId);
         (uint256 _withdrawnAmount, uint256 _decreasedValue) = _vault.withdraw(address(this), _amount);
 
         emit FundsRecalled(_vaultId, _withdrawnAmount, _decreasedValue);
@@ -697,7 +697,7 @@ contract FormationUSD is ReentrancyGuard {
 
         // Pull the remaining funds from the active vault.
         if (_remainingAmount > 0) {
-            Vault.Data storage _activeVault = _vaults.last();
+            VaultV2.Data storage _activeVault = _vaults.last();
             (uint256 _withdrawAmount, uint256 _decreasedValue) = _activeVault.withdraw(_recipient, _remainingAmount);
             _totalWithdrawn = _totalWithdrawn.add(_withdrawAmount);
             _totalDecreasedValue = _totalDecreasedValue.add(_decreasedValue);
