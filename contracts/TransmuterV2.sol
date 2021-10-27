@@ -20,7 +20,7 @@ contract TransmuterV2 is Context {
     uint256 public TRANSMUTATION_PERIOD;
 
     address public NToken;
-    address public token;
+    address public Token;
 
     mapping(address => uint256) public depositedNTokens;
     mapping(address => uint256) public tokensInBucket;
@@ -123,15 +123,15 @@ contract TransmuterV2 is Context {
 
     constructor(
         address _NToken,
-        address _token,
+        address _Token,
         address _governance
     ) public {
         require(_governance != ZERO_ADDRESS, "Transmuter: 0 gov");
-        require(IERC20Burnable(_token).decimals() <= IERC20Burnable(_NToken).decimals(), "Transmuter: xtoken decimals should be larger than token decimals");
-        USDT_CONST = uint256(10)**(uint256(IERC20Burnable(_NToken).decimals()).sub(uint256(IERC20Burnable(_token).decimals())));
+        require(IERC20Burnable(_Token).decimals() <= IERC20Burnable(_NToken).decimals(), "Transmuter: xtoken decimals should be larger than token decimals");
+        USDT_CONST = uint256(10)**(uint256(IERC20Burnable(_NToken).decimals()).sub(uint256(IERC20Burnable(_Token).decimals())));
         governance = _governance;
         NToken = _NToken;
-        token = _token;
+        Token = _Token;
         TRANSMUTATION_PERIOD = 10000;
     }
 
@@ -239,8 +239,8 @@ contract TransmuterV2 is Context {
         uint256 value = realisedTokens[sender];
         realisedTokens[sender] = 0;
         ensureSufficientFundsExistLocally(value);
-        IERC20Burnable(token).safeTransfer(sender, value);
-        emit TokenClaimed(sender, token, value);
+        IERC20Burnable(Token).safeTransfer(sender, value);
+        emit TokenClaimed(sender, Token, value);
     }
 
     ///@dev Withdraws staked nTokens from the transmuter
@@ -366,7 +366,7 @@ contract TransmuterV2 is Context {
 
         // force payout of realised tokens of the toTransmute address
         realisedTokens[toTransmute] = 0;
-        IERC20Burnable(token).safeTransfer(toTransmute, value);
+        IERC20Burnable(Token).safeTransfer(toTransmute, value);
         emit ForcedTransmutation(msg.sender, toTransmute, value);
     }
 
@@ -406,7 +406,7 @@ contract TransmuterV2 is Context {
     /// @param amount the amount of base tokens to be distributed to the transmuter.
     function distribute(address origin, uint256 amount) public onlyWhitelisted runPhasedDistribution {
         require(!pause, "emergency pause enabled");
-        IERC20Burnable(token).safeTransferFrom(origin, address(this), amount);
+        IERC20Burnable(Token).safeTransferFrom(origin, address(this), amount);
         buffer = buffer.add(amount);
         _plantOrRecallExcessFunds();
         emit Distribution(origin, amount);
@@ -589,7 +589,7 @@ contract TransmuterV2 is Context {
     /// @param _adapter the adapter for the new active vault.
     function _updateActiveVault(IVaultAdapterV2 _adapter) internal {
         require(address(_adapter) != address(0), "Transmuter: active vault address cannot be 0x0.");
-        require(address(_adapter.token()) == token, "Transmuter.vault: token mismatch.");
+        require(address(_adapter.token()) == Token, "Transmuter.vault: token mismatch.");
         require(!adapters[_adapter], "Adapter already in use");
         adapters[_adapter] = true;
 
@@ -629,7 +629,7 @@ contract TransmuterV2 is Context {
     ///
     /// @param amt amount of funds that need to exist locally to fulfill pending request
     function ensureSufficientFundsExistLocally(uint256 amt) internal {
-        uint256 currentBal = IERC20Burnable(token).balanceOf(address(this));
+        uint256 currentBal = IERC20Burnable(Token).balanceOf(address(this));
         if (currentBal < amt) {
             uint256 diff = amt - currentBal;
             // get enough funds from active vault to replenish local holdings & fulfill claim request
@@ -686,7 +686,7 @@ contract TransmuterV2 is Context {
     /// Should only be called as part of distribute()
     function _plantOrRecallExcessFunds() internal {
         // check if the transmuter holds more funds than plantableThreshold
-        uint256 bal = IERC20Burnable(token).balanceOf(address(this));
+        uint256 bal = IERC20Burnable(Token).balanceOf(address(this));
         uint256 marginVal = plantableThreshold.mul(plantableMargin).div(100);
         if (bal > plantableThreshold.add(marginVal)) {
             uint256 plantAmt = bal - plantableThreshold;
@@ -799,9 +799,9 @@ contract TransmuterV2 is Context {
         require(pause, "migrate: set emergency exit first");
 
         // leave enough funds to service any pending transmutations
-        uint256 totalFunds = IERC20Burnable(token).balanceOf(address(this));
+        uint256 totalFunds = IERC20Burnable(Token).balanceOf(address(this));
         uint256 migratableFunds = totalFunds.sub(totalSupplyNtokens.div(USDT_CONST), "not enough funds to service stakes");
-        IERC20Burnable(token).approve(migrateTo, migratableFunds);
+        IERC20Burnable(Token).approve(migrateTo, migratableFunds);
         ITransmuter(migrateTo).distribute(address(this), migratableFunds);
         emit MigrationComplete(migrateTo, migratableFunds);
     }
