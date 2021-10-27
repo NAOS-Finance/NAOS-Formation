@@ -6,5 +6,5 @@ interface IEllipsisPool {
 
     function withdraw(uint256, uint256) external;
 
-    function claim(uint256) external;
+    function userInfo(uint256, address) external view returns (uint256, uint256);
 }
