@@ -139,7 +139,7 @@ contract EllipsisVaultAdapter is IVaultAdapterV2 {
     stakingPool.withdraw(stakingPoolId, withdrawAmount);
 
     // withdraw
-    vault.remove_liquidity_one_coin(withdrawAmount, int128(assetId), withdrawAmount);
+    vault.remove_liquidity_one_coin(withdrawAmount, int128(assetId), _amount);
 
     // transfer all the busd in adapter to yum
     busdToken.transfer(_recipient, busdToken.balanceOf(address(this)));
@@ -158,7 +158,7 @@ contract EllipsisVaultAdapter is IVaultAdapterV2 {
     // withdraw accumulated ibusd from collector harvest
     if(lpToken.balanceOf(address(this)) > 0){
       uint256 lpBalance = lpToken.balanceOf(address(this));
-      vault.remove_liquidity_one_coin(lpBalance, int128(assetId), lpBalance);
+      vault.remove_liquidity_one_coin(lpBalance, int128(assetId), _sharesToTokens(lpBalance));
     }
 
     uniV2Router
