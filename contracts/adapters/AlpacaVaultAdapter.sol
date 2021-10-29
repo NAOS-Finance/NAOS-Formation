@@ -48,6 +48,20 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   /// @dev The router path to sell alpaca for BUSD
   address[] public path;
 
+  /// @dev lastUpdated
+  uint256 public lastUpdated;
+
+  modifier checkoutWithdraw() {
+    uint256 blockNow = block.number;
+    if (lastUpdated != block.number) {
+      lastUpdated = block.number;
+      // accrue interest
+      stakingPool.withdraw(address(this), stakingPoolId, 0);
+      vault.withdraw(0);
+    }
+    _;
+  }
+
   constructor(IbBUSDToken _vault, address _admin, IUniswapV2Router02 _uniV2Router, IAlpacaPool _stakingPool, IDetailedERC20 _alpacaToken, IDetailedERC20 _wBNBToken, uint256 _stakingPoolId) public {
     require(address(_vault) != address(0), "AlpacaVaultAdapter: vault address cannot be 0x0.");
     require(_admin != address(0), "AlpacaVaultAdapter: _admin cannot be 0x0.");
@@ -115,7 +129,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   ///
   /// @param _recipient the account to withdraw the tokes to.
   /// @param _amount    the amount of tokens to withdraw.
-  function withdraw(address _recipient, uint256 _amount) external override onlyAdmin {
+  function withdraw(address _recipient, uint256 _amount) external override onlyAdmin checkoutWithdraw {
     // unstake
     stakingPool.withdraw(address(this), stakingPoolId, _tokensToShares(_amount));
 
@@ -132,7 +146,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   ///
   /// @param _recipient the account to withdraw the tokes to.
   /// @param _amount    the amount of tokens to withdraw.
-  function indirectWithdraw(address _recipient, uint256 _amount) external override onlyAdmin {
+  function indirectWithdraw(address _recipient, uint256 _amount) external override onlyAdmin checkoutWithdraw {
     // unstake
     stakingPool.withdraw(address(this), stakingPoolId, _tokensToShares(_amount));
 

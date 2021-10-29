@@ -93,7 +93,16 @@ library VaultV2 {
         uint256 _withdrawnAmount = _endingBalance.sub(_startingBalance);
 
         uint256 _endingTotalValue = _self.totalValue();
-        uint256 _decreasedValue = _startingTotalValue.sub(_endingTotalValue);
+
+        uint256 _actualDecreaseValue = 0;
+        if (_startingTotalValue > _endingTotalValue) {
+            _actualDecreaseValue = _startingTotalValue.sub(_endingTotalValue);
+        }
+
+        uint256 _decreasedValue = _amount;
+        if (_actualDecreaseValue > _amount) {
+            _decreasedValue = _actualDecreaseValue;
+        }
 
         return (_withdrawnAmount, _decreasedValue);
     }
