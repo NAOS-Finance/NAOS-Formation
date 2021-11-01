@@ -171,6 +171,10 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   }
 
   /// @dev Computes the total token entitled to the token holders.
+  ///
+  /// source from alpaca vault: https://bscscan.com/address/0x7C9e73d4C71dae564d41F78d56439bB4ba87592f
+  ///
+  /// @return total token.
   function _totalToken() internal view returns (uint256) {
     uint256 vaultDebtVal = vault.vaultDebtVal();
     uint256 reservePool = vault.reservePool();
@@ -185,9 +189,13 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   }
 
   /// @dev Return the pending interest that will be accrued in the next call.
+  ///
+  /// source from alpaca vault: https://bscscan.com/address/0x7C9e73d4C71dae564d41F78d56439bB4ba87592f
+  ///
   /// @param _value Balance value to subtract off address(this).balance when called from payable functions.
   /// @param _lastAccrueTime Last timestamp to accrue interest.
   /// @param _vaultDebtVal Debt value of the given vault.
+  /// @return pending interest.
   function _pendingInterest(uint256 _value, uint256 _lastAccrueTime, uint256 _vaultDebtVal) internal view returns (uint256) {
     if (now > _lastAccrueTime) {
       uint256 timePass = now.sub(_lastAccrueTime);
