@@ -181,7 +181,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
       reservePool = reservePool.add(toReserve);
       vaultDebtVal = vaultDebtVal.add(interest);
     }
-    return busdToken.balanceOf(address(this)).add(vaultDebtVal).sub(reservePool);
+    return busdToken.balanceOf(address(vault)).add(vaultDebtVal).sub(reservePool);
   }
 
   /// @dev Return the pending interest that will be accrued in the next call.
@@ -191,7 +191,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   function _pendingInterest(uint256 _value, uint256 _lastAccrueTime, uint256 _vaultDebtVal) internal view returns (uint256) {
     if (now > _lastAccrueTime) {
       uint256 timePass = now.sub(_lastAccrueTime);
-      uint256 balance = busdToken.balanceOf(address(this)).sub(_value);
+      uint256 balance = busdToken.balanceOf(address(vault)).sub(_value);
       uint256 ratePerSec = config.getInterestRate(_vaultDebtVal, balance);
       return ratePerSec.mul(_vaultDebtVal).mul(timePass).div(1e18);
     } else {
