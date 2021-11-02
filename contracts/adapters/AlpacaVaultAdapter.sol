@@ -8,6 +8,7 @@ import {IDetailedERC20} from "../interfaces/IDetailedERC20.sol";
 import {IVaultAdapterV2} from "../interfaces/IVaultAdapterV2.sol";
 import {IbBUSDToken} from "../interfaces/IbBUSDToken.sol";
 import {IAlpacaPool} from "../interfaces/IAlpacaPool.sol";
+import {IAlpacaVaultConfig} from "../interfaces/IAlpacaVaultConfig.sol";
 import {IUniswapV2Router01, IUniswapV2Router02} from "../interfaces/IUniswapV2Router.sol";
 
 /// @title AlpacaVaultAdapter
@@ -36,6 +37,9 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   /// @dev busdToken
   IDetailedERC20 public busdToken;
 
+  /// @dev IAlpacaVaultConfig
+  IAlpacaVaultConfig public config;
+
   /// @dev The address which has admin control over this contract.
   address public admin;
 
@@ -48,13 +52,14 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   /// @dev The router path to sell alpaca for BUSD
   address[] public path;
 
-  constructor(IbBUSDToken _vault, address _admin, IUniswapV2Router02 _uniV2Router, IAlpacaPool _stakingPool, IDetailedERC20 _alpacaToken, IDetailedERC20 _wBNBToken, uint256 _stakingPoolId) public {
+  constructor(IbBUSDToken _vault, address _admin, IUniswapV2Router02 _uniV2Router, IAlpacaPool _stakingPool, IDetailedERC20 _alpacaToken, IDetailedERC20 _wBNBToken, IAlpacaVaultConfig _config, uint256 _stakingPoolId) public {
     require(address(_vault) != address(0), "AlpacaVaultAdapter: vault address cannot be 0x0.");
     require(_admin != address(0), "AlpacaVaultAdapter: _admin cannot be 0x0.");
     require(address(_uniV2Router) != address(0), "AlpacaVaultAdapter: _uniV2Router cannot be 0x0.");
     require(address(_stakingPool) != address(0), "AlpacaVaultAdapter: _stakingPool cannot be 0x0.");
     require(address(_alpacaToken) != address(0), "AlpacaVaultAdapter: _alpacaToken cannot be 0x0.");
     require(address(_wBNBToken) != address(0), "AlpacaVaultAdapter: _wBNBToken cannot be 0x0.");
+    require(address(_config) != address(0), "AlpacaVaultAdapter: _config cannot be 0x0.");
 
     vault = _vault;
     admin = _admin;
@@ -62,6 +67,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
     stakingPool = _stakingPool;
     alpacaToken = _alpacaToken;
     wBNBToken = _wBNBToken;
+    config = _config;
     stakingPoolId = _stakingPoolId;
 
     updateApproval();
@@ -164,14 +170,50 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
     alpacaToken.safeApprove(address(uniV2Router), uint256(-1));
   }
 
+  /// @dev Computes the total token entitled to the token holders.
+  ///
+  /// source from alpaca vault: https://bscscan.com/address/0x7C9e73d4C71dae564d41F78d56439bB4ba87592f
+  ///
+  /// @return total token.
+  function _totalToken() internal view returns (uint256) {
+    uint256 vaultDebtVal = vault.vaultDebtVal();
+    uint256 reservePool = vault.reservePool();
+    uint256 lastAccrueTime = vault.lastAccrueTime();
+    if (now > lastAccrueTime) {
+      uint256 interest = _pendingInterest(0, lastAccrueTime, vaultDebtVal);
+      uint256 toReserve = interest.mul(config.getReservePoolBps()).div(10000);
+      reservePool = reservePool.add(toReserve);
+      vaultDebtVal = vaultDebtVal.add(interest);
+    }
+    return busdToken.balanceOf(address(vault)).add(vaultDebtVal).sub(reservePool);
+  }
+
+  /// @dev Return the pending interest that will be accrued in the next call.
+  ///
+  /// source from alpaca vault: https://bscscan.com/address/0x7C9e73d4C71dae564d41F78d56439bB4ba87592f
+  ///
+  /// @param _value Balance value to subtract off address(this).balance when called from payable functions.
+  /// @param _lastAccrueTime Last timestamp to accrue interest.
+  /// @param _vaultDebtVal Debt value of the given vault.
+  /// @return pending interest.
+  function _pendingInterest(uint256 _value, uint256 _lastAccrueTime, uint256 _vaultDebtVal) internal view returns (uint256) {
+    if (now > _lastAccrueTime) {
+      uint256 timePass = now.sub(_lastAccrueTime);
+      uint256 balance = busdToken.balanceOf(address(vault)).sub(_value);
+      uint256 ratePerSec = config.getInterestRate(_vaultDebtVal, balance);
+      return ratePerSec.mul(_vaultDebtVal).mul(timePass).div(1e18);
+    } else {
+      return 0;
+    }
+  }
+
   /// @dev Computes the number of tokens an amount of shares is worth.
   ///
   /// @param _sharesAmount the amount of shares.
   ///
   /// @return the number of tokens the shares are worth.
-
   function _sharesToTokens(uint256 _sharesAmount) internal view returns (uint256) {
-    return _sharesAmount.mul(vault.totalToken()).div(vault.totalSupply());
+    return _sharesAmount.mul(_totalToken()).div(vault.totalSupply());
   }
 
   /// @dev Computes the number of shares an amount of tokens is worth.
@@ -180,6 +222,6 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   ///
   /// @return the number of shares the tokens are worth.
   function _tokensToShares(uint256 _tokensAmount) internal view returns (uint256) {
-    return _tokensAmount.mul(vault.totalSupply()).div(vault.totalToken());
+    return _tokensAmount.mul(vault.totalSupply()).div(_totalToken());
   }
 }

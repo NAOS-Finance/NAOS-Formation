@@ -16,6 +16,7 @@ import { YearnControllerMock } from "../../types/YearnControllerMock";
 import { IbBusdMock } from "../../types/IbBUSDMock";
 import { UniswapV2Mock } from "../../types/UniswapV2Mock";
 import { AlpacaStakingPoolMock } from "../../types/AlpacaStakingPoolMock";
+import { AlpacaVaultConfigMock } from "../../types/AlpacaVaultConfigMock";
 import { AlpacaVaultAdapter } from "../../types/AlpacaVaultAdapter";
 import { YearnVaultMock } from "../../types/YearnVaultMock";
 import { EllipsisPoolMock } from "../../types/EllipsisPoolMock";
@@ -38,6 +39,7 @@ let YearnControllerMockFactory: ContractFactory;
 let ibBUSDMockFactory: ContractFactory;
 let uniswapV2MockFactory: ContractFactory;
 let alpacaStakingPoolMock: ContractFactory;
+let alpacaVaultConfigMock: ContractFactory;
 let alpacaVaultAdapter: ContractFactory;
 let ellipsisPoolMockFactory: ContractFactory;
 let threeesPoolMockFactory: ContractFactory;
@@ -59,6 +61,7 @@ describe("FormationV2", () => {
     ibBUSDMockFactory = await ethers.getContractFactory("IbBUSDMock");
     uniswapV2MockFactory = await ethers.getContractFactory("UniswapV2Mock");
     alpacaStakingPoolMock = await ethers.getContractFactory("AlpacaStakingPoolMock");
+    alpacaVaultConfigMock = await ethers.getContractFactory("AlpacaVaultConfigMock");
     alpacaVaultAdapter = await ethers.getContractFactory("AlpacaVaultAdapter");
     ellipsisPoolMockFactory = await ethers.getContractFactory("EllipsisPoolMock");
     threeesPoolMockFactory = await ethers.getContractFactory("I3ESPoolMock");
@@ -1075,6 +1078,7 @@ describe("FormationV2", () => {
     let ibBusd: IbBusdMock;
     let uniswapV2: UniswapV2Mock;
     let alpacaStaking: AlpacaStakingPoolMock;
+    let alpacaVaultConfig: AlpacaVaultConfigMock;
     let adapter: AlpacaVaultAdapter;
     let formation: FormationV2;
     
@@ -1106,6 +1110,7 @@ describe("FormationV2", () => {
         alpaca.address,
         parseEther("1")
       )) as AlpacaStakingPoolMock;
+      alpacaVaultConfig = (await alpacaVaultConfigMock.connect(deployer).deploy()) as AlpacaVaultConfigMock;
       adapter = (await alpacaVaultAdapter.connect(deployer).deploy(
         ibBusd.address,
         await governance.getAddress(),
@@ -1113,6 +1118,7 @@ describe("FormationV2", () => {
         alpacaStaking.address,
         alpaca.address,
         wBnb.address,
+        alpacaVaultConfig.address,
         0
       )) as AlpacaVaultAdapter;
     });

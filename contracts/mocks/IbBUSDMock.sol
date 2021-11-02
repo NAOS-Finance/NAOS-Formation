@@ -13,6 +13,7 @@ contract IbBUSDMock is ERC20 {
 
     uint256 public vaultDebtVal;
     uint256 public reservePool;
+    uint256 public lastAccrueTime;
 
     IDetailedERC20 public token;
 
