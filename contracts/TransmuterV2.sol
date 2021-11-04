@@ -708,7 +708,7 @@ contract TransmuterV2 is Context {
     /// @param _recallAmt the amount to harvest from the active vault
     function _recallExcessFundsFromActiveVault(uint256 _recallAmt) internal {
         VaultV2.Data storage _activeVault = _vaults.last();
-        uint256 activeVaultVal = _activeVault.totalValue();
+        uint256 activeVaultVal = _activeVault.totalDeposited;
         if (activeVaultVal < _recallAmt) {
             _recallAmt = activeVaultVal;
         }
