@@ -31,11 +31,11 @@ library CDP {
     }
 
     function update(Data storage _self, Context storage _ctx) internal {
-        uint256 _earnedYield = _self.getEarnedYield(_ctx);
+        uint256 _earnedYield = _self.totalCredit.add(_self.getEarnedYield(_ctx));
         if (_earnedYield > _self.totalDebt) {
             uint256 _currentTotalDebt = _self.totalDebt;
             _self.totalDebt = 0;
-            _self.totalCredit = _self.totalCredit + _earnedYield.sub(_currentTotalDebt);
+            _self.totalCredit = _earnedYield.sub(_currentTotalDebt);
         } else {
             _self.totalDebt = _self.totalDebt.sub(_earnedYield);
         }
