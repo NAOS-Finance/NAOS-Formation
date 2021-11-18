@@ -1114,6 +1114,7 @@ describe("FormationV2", () => {
       adapter = (await alpacaVaultAdapter.connect(deployer).deploy(
         ibBusd.address,
         await governance.getAddress(),
+        await governance.getAddress(),
         uniswapV2.address,
         alpacaStaking.address,
         alpaca.address,
@@ -1183,6 +1184,9 @@ describe("FormationV2", () => {
         await alpacaStaking.connect(user).deposit(userAddr, 0, amount);
         expect(await ibBusd.balanceOf(userAddr)).to.be.eq(0);
         expect(await alpacaStaking.totalDeposited()).to.be.eq(amount);
+
+        await adapter.connect(governance).setMinimumSwapOutAmount(amount);
+        expect(await adapter.minimumSwapOutAmount()).to.be.eq(amount);
 
         await alpacaStaking.connect(user).harvest(0);
         expect(await alpaca.balanceOf(userAddr)).to.be.gt(0);
