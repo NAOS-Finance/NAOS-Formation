@@ -49,6 +49,12 @@ contract TransmuterV2 is Context {
     /// @dev addresses whitelisted to run keepr jobs (harvest)
     mapping(address => bool) public keepers;
 
+    /// @dev mapping of user account to the last block they acted
+    mapping(address => uint256) public lastUserAction;
+
+    /// @dev number of blocks to delay between allowed user actions
+    uint256 public minUserActionDelay;
+
     /// @dev The threshold above which excess funds will be deployed to yield farming activities
     uint256 public plantableThreshold = 100000000000000000000000;
 
@@ -121,6 +127,8 @@ contract TransmuterV2 is Context {
 
     event MigrationComplete(address migrateTo, uint256 fundsMigrated);
 
+    event MinUserActionDelayUpdated(uint256 minUserActionDelay);
+
     constructor(
         address _NToken,
         address _Token,
@@ -133,6 +141,7 @@ contract TransmuterV2 is Context {
         NToken = _NToken;
         Token = _Token;
         TRANSMUTATION_PERIOD = 10000;
+        minUserActionDelay = 1;
     }
 
     ///@return displays the user's share of the pooled nTokens.
@@ -221,6 +230,14 @@ contract TransmuterV2 is Context {
         _;
     }
 
+    /// @dev checks that the block delay since a user's last action is longer than the minium delay
+    ///
+    modifier ensureUserActionDelay() {
+        require(block.number.sub(lastUserAction[msg.sender]) >= minUserActionDelay, "action delay not met");
+        lastUserAction[msg.sender] = block.number;
+        _;
+    }
+
     ///@dev set the TRANSMUTATION_PERIOD variable
     ///
     /// sets the length (in blocks) of one full distribution phase
@@ -228,6 +245,16 @@ contract TransmuterV2 is Context {
         require(newTransmutationPeriod > 0, "Transmuter: transmutation period cannot be 0");
         TRANSMUTATION_PERIOD = newTransmutationPeriod;
         emit TransmuterPeriodUpdated(TRANSMUTATION_PERIOD);
+    }
+
+    /// @dev Sets the minUserActionDelay
+    ///
+    /// This function reverts if the caller is not the current governance.
+    ///
+    /// @param _minUserActionDelay the new min user action delay.
+    function setMinUserActionDelay(uint256 _minUserActionDelay) external onlyGov() {
+        minUserActionDelay = _minUserActionDelay;
+        emit MinUserActionDelayUpdated(_minUserActionDelay);
     }
 
     ///@dev claims the base token after it has been transmuted
@@ -265,7 +292,7 @@ contract TransmuterV2 is Context {
     ///@dev Deposits nTokens into the transmuter
     ///
     ///@param amount the amount of nTokens to stake
-    function stake(uint256 amount) public runPhasedDistribution updateAccount(msg.sender) checkIfNewUser {
+    function stake(uint256 amount) public ensureUserActionDelay runPhasedDistribution updateAccount(msg.sender) checkIfNewUser {
         require(!pause, "emergency pause enabled");
 
         // requires approval of NToken first
@@ -286,7 +313,7 @@ contract TransmuterV2 is Context {
     /// once the NToken has been converted, it is burned, and the base token becomes realisedTokens which can be recieved using claim()
     ///
     /// reverts if there are no pendingdivs or tokensInBucket
-    function transmute() public runPhasedDistribution updateAccount(msg.sender) {
+    function transmute() public ensureUserActionDelay runPhasedDistribution updateAccount(msg.sender) {
         address sender = msg.sender;
         uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[sender];
@@ -329,7 +356,7 @@ contract TransmuterV2 is Context {
     /// This function reverts if the address to transmute is not over-filled.
     ///
     /// @param toTransmute address of the account you will force transmute.
-    function forceTransmute(address toTransmute) public runPhasedDistribution updateAccount(msg.sender) updateAccount(toTransmute) checkIfNewUser {
+    function forceTransmute(address toTransmute) public ensureUserActionDelay runPhasedDistribution updateAccount(msg.sender) updateAccount(toTransmute) checkIfNewUser {
         //load into memory
         uint256 pendingz_USDT;
         uint256 pendingz = tokensInBucket[toTransmute];
