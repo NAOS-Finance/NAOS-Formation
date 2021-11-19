@@ -43,6 +43,12 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   /// @dev The address which has admin control over this contract.
   address public admin;
 
+  /// @dev The address of the account which currently has administrative capabilities over this contract.
+  address public governance;
+
+  /// @dev The address of the pending governance.
+  address public pendingGovernance;
+
   /// @dev The decimals of the token.
   uint256 public decimals;
 
@@ -52,9 +58,33 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   /// @dev The router path to sell alpaca for BUSD
   address[] public path;
 
-  constructor(IbBUSDToken _vault, address _admin, IUniswapV2Router02 _uniV2Router, IAlpacaPool _stakingPool, IDetailedERC20 _alpacaToken, IDetailedERC20 _wBNBToken, IAlpacaVaultConfig _config, uint256 _stakingPoolId) public {
+  /// @dev The minimum swap out amount used when harvest.
+  uint256 public minimumSwapOutAmount;
+
+  /// @dev A modifier which reverts if the caller is not the admin.
+  modifier onlyAdmin() {
+    require(admin == msg.sender, "AlpacaVaultAdapter: only admin");
+    _;
+  }
+
+  /// @dev Checks that the current message sender or caller is the governance address.
+  ///
+  ///
+  modifier onlyGov() {
+      require(msg.sender == governance, "AlpacaVaultAdapter: only governance.");
+      _;
+  }
+
+  event GovernanceUpdated(address governance);
+
+  event PendingGovernanceUpdated(address pendingGovernance);
+
+  event MinimumSwapOutAmountUpdated(uint256 minimumSwapOutAmount);
+
+  constructor(IbBUSDToken _vault, address _admin, address _governance, IUniswapV2Router02 _uniV2Router, IAlpacaPool _stakingPool, IDetailedERC20 _alpacaToken, IDetailedERC20 _wBNBToken, IAlpacaVaultConfig _config, uint256 _stakingPoolId) public {
     require(address(_vault) != address(0), "AlpacaVaultAdapter: vault address cannot be 0x0.");
     require(_admin != address(0), "AlpacaVaultAdapter: _admin cannot be 0x0.");
+    require(_governance != address(0), "AlpacaVaultAdapter: governance address cannot be 0x0.");
     require(address(_uniV2Router) != address(0), "AlpacaVaultAdapter: _uniV2Router cannot be 0x0.");
     require(address(_stakingPool) != address(0), "AlpacaVaultAdapter: _stakingPool cannot be 0x0.");
     require(address(_alpacaToken) != address(0), "AlpacaVaultAdapter: _alpacaToken cannot be 0x0.");
@@ -63,6 +93,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
 
     vault = _vault;
     admin = _admin;
+    governance = _governance;
     uniV2Router = _uniV2Router;
     stakingPool = _stakingPool;
     alpacaToken = _alpacaToken;
@@ -81,10 +112,41 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
     path = _path;
   }
 
-  /// @dev A modifier which reverts if the caller is not the admin.
-  modifier onlyAdmin() {
-    require(admin == msg.sender, "AlpacaVaultAdapter: only admin");
-    _;
+  /// @dev Sets the pending governance.
+  ///
+  /// This function reverts if the new pending governance is the zero address or the caller is not the current
+  /// governance. This is to prevent the contract governance being set to the zero address which would deadlock
+  /// privileged contract functionality.
+  ///
+  /// @param _pendingGovernance the new pending governance.
+  function setPendingGovernance(address _pendingGovernance) external onlyGov {
+      require(_pendingGovernance != address(0), "AlpacaVaultAdapter: governance address cannot be 0x0.");
+
+      pendingGovernance = _pendingGovernance;
+
+      emit PendingGovernanceUpdated(_pendingGovernance);
+  }
+
+  /// @dev Accepts the role as governance.
+  ///
+  /// This function reverts if the caller is not the new pending governance.
+  function acceptGovernance() external {
+      require(msg.sender == pendingGovernance, "sender is not pendingGovernance");
+
+      governance = pendingGovernance;
+
+      emit GovernanceUpdated(pendingGovernance);
+  }
+
+  /// @dev Sets the minimum swap out amount.
+  ///
+  /// @param _minimumSwapOutAmount the minimum swap out amount.
+  function setMinimumSwapOutAmount(uint256 _minimumSwapOutAmount) external onlyGov {
+      require(_minimumSwapOutAmount > 0, "AlpacaVaultAdapter: _minimumSwapOutAmount should > 0.");
+
+      minimumSwapOutAmount = _minimumSwapOutAmount;
+
+      emit MinimumSwapOutAmountUpdated(_minimumSwapOutAmount);
   }
 
   /// @dev Gets the token that the vault accepts.
@@ -139,6 +201,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
   /// @param _recipient the account to withdraw the tokes to.
   /// @param _amount    the amount of tokens to withdraw.
   function indirectWithdraw(address _recipient, uint256 _amount) external override onlyAdmin {
+    require(minimumSwapOutAmount > 0, "AlpacaVaultAdapter: minimumSwapOutAmount should > 0.");
     // unstake
     stakingPool.withdraw(address(this), stakingPoolId, _tokensToShares(_amount));
 
@@ -149,8 +212,9 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
 
     stakingPool.harvest(stakingPoolId);
     uniV2Router
-      .swapExactTokensForTokens(alpacaToken.balanceOf(address(this)),
-        0,
+      .swapExactTokensForTokens(
+        alpacaToken.balanceOf(address(this)),
+        minimumSwapOutAmount,
         path,
         address(this),
         block.timestamp + 800
@@ -158,6 +222,8 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
 
     // transfer all the busd in adapter to user
     busdToken.transfer(_recipient, busdToken.balanceOf(address(this)));
+    // reset minumum swap out amount in case we didn't update next harvest
+    minimumSwapOutAmount = 0;
   }
 
   /// @dev Updates the vaults approval of the token to be the maximum value.
