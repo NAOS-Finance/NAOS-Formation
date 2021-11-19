@@ -477,7 +477,8 @@ contract FormationV2 is ReentrancyGuard {
     /// @dev Attempts to liquidate part of a CDP's collateral to pay back its debt.
     ///
     /// @param _amount the amount of collateral to attempt to liquidate.
-
+    ///
+    /// @return the liquidation amount and the reduced net worth of the vault, the decimal is based on the deposited token
     function liquidate(uint256 _amount) external nonReentrant noContractAllowed onLinkCheck expectInitialized returns (uint256, uint256) {
         require(_amount > 0, "amount is zero");
 
