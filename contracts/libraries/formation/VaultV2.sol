@@ -98,7 +98,7 @@ library VaultV2 {
         return (_withdrawnAmount, _decreasedValue);
     }
 
-    /// @dev Directly withdraw deposited funds from the vault.
+    /// @dev This function is used for harvest function to get the yield
     ///
     /// @param _recipient the account to withdraw the tokens to.
     /// @param _amount    the amount of tokens to withdraw.
