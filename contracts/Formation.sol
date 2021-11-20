@@ -591,7 +591,7 @@ contract Formation is ReentrancyGuard {
     ///
     /// benefit of great nation of transmuter
     function _distributeToTransmuter(uint256 amount) internal {
-        token.approve(transmuter, amount);
+        require(token.approve(transmuter, amount), "Formation: failed to approve tokens");
         ITransmuter(transmuter).distribute(address(this), amount);
         // lower debt cause of 'burn'
         xtoken.lowerHasMinted(amount);

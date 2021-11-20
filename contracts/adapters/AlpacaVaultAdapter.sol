@@ -191,7 +191,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
     vault.withdraw(_tokensToShares(_amount));
 
     // transfer all the busd in adapter to yum
-    busdToken.transfer(_recipient, busdToken.balanceOf(address(this)));
+    require(busdToken.transfer(_recipient, busdToken.balanceOf(address(this))), "AlpacaVaultAdapter: failed to transfer tokens");
   }
 
   /// @dev Indirect withdraws tokens from the vault to the recipient.
@@ -211,7 +211,7 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
     }
 
     stakingPool.harvest(stakingPoolId);
-    uniV2Router
+    uint256[] memory amounts = uniV2Router
       .swapExactTokensForTokens(
         alpacaToken.balanceOf(address(this)),
         minimumSwapOutAmount,
@@ -219,9 +219,10 @@ contract AlpacaVaultAdapter is IVaultAdapterV2 {
         address(this),
         block.timestamp + 800
       );
+    require(amounts[2] >= minimumSwapOutAmount, "AlpacaVaultAdapter: swap amount should >= minimumSwapOutAmount");
 
     // transfer all the busd in adapter to user
-    busdToken.transfer(_recipient, busdToken.balanceOf(address(this)));
+    require(busdToken.transfer(_recipient, busdToken.balanceOf(address(this))), "AlpacaVaultAdapter: failed to transfer tokens");
     // reset minumum swap out amount in case we didn't update next harvest
     minimumSwapOutAmount = 0;
   }
