@@ -56,6 +56,7 @@ contract YearnVaultMockUSD is ERC20 {
             _shares = (_amount.mul(totalSupply())).div(_pool);
         }
         _mint(msg.sender, _shares);
+        return _shares;
     }
 
     function withdraw(uint256 _shares, address _recipient) external returns (uint256) {
@@ -75,6 +76,7 @@ contract YearnVaultMockUSD is ERC20 {
         }
 
         token.safeTransfer(_recipient, _r);
+        return _r;
     }
 
     function pricePerShare() external view returns (uint256) {

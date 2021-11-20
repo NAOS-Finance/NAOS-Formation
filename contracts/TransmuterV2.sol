@@ -719,7 +719,7 @@ contract TransmuterV2 is Context {
             uint256 plantAmt = bal - plantableThreshold;
             // if total funds above threshold, send funds to vault
             VaultV2.Data storage _activeVault = _vaults.last();
-            _activeVault.deposit(plantAmt);
+            require(_activeVault.deposit(plantAmt) == plantAmt, "Transmuter: deposit amount should be equal");
         } else if (bal < plantableThreshold.sub(marginVal)) {
             // if total funds below threshold, recall funds from vault
             // first check that there are enough funds in vault
@@ -828,7 +828,7 @@ contract TransmuterV2 is Context {
         // leave enough funds to service any pending transmutations
         uint256 totalFunds = IERC20Burnable(Token).balanceOf(address(this));
         uint256 migratableFunds = totalFunds.sub(totalSupplyNtokens.div(USDT_CONST), "not enough funds to service stakes");
-        IERC20Burnable(Token).approve(migrateTo, migratableFunds);
+        require(IERC20Burnable(Token).approve(migrateTo, migratableFunds), "Transmuter: failed to approve tokens");
         ITransmuter(migrateTo).distribute(address(this), migratableFunds);
         emit MigrationComplete(migrateTo, migratableFunds);
     }
