@@ -61,7 +61,7 @@ contract YearnVaultAdapter is IVaultAdapter {
     ///
     /// @param _amount the amount of tokens to deposit into the vault.
     function deposit(uint256 _amount) external override onlyAdmin {
-        require(vault.deposit(_amount) == _amount, "YearnVaultAdapter: deposit amount should be equal");
+        vault.deposit(_amount);
     }
 
     /// @dev Withdraws tokens from the vault to the recipient.
@@ -71,8 +71,7 @@ contract YearnVaultAdapter is IVaultAdapter {
     /// @param _recipient the account to withdraw the tokes to.
     /// @param _amount    the amount of tokens to withdraw.
     function withdraw(address _recipient, uint256 _amount) external override onlyAdmin {
-        uint256 shareAmount = _tokensToShares(_amount);
-        require(vault.withdraw(shareAmount, _recipient) == shareAmount, "YearnVaultAdapter: withdraw amount should be equal");
+        vault.withdraw(_tokensToShares(_amount));
     }
 
     /// @dev Updates the vaults approval of the token to be the maximum value.
