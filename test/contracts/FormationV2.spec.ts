@@ -13,7 +13,7 @@ import { YearnVaultAdapter } from "../../types/YearnVaultAdapter";
 import { YearnVaultAdapterV2 } from "../../types/YearnVaultAdapterV2";
 import { YearnVaultMockUsd } from "../../types/YearnVaultMockUsd";
 import { YearnControllerMock } from "../../types/YearnControllerMock";
-import { IbBusdMock } from "../../types/IbBUSDMock";
+import { IbBusdMock } from "../../types/IbBusdMock";
 import { UniswapV2Mock } from "../../types/UniswapV2Mock";
 import { AlpacaStakingPoolMock } from "../../types/AlpacaStakingPoolMock";
 import { AlpacaVaultConfigMock } from "../../types/AlpacaVaultConfigMock";
